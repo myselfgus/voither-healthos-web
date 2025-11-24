@@ -72,9 +72,6 @@ export abstract class BasePropActor extends McpObject {
   }
 }
 
-// Alias para compatibilidade
-export const BaseToolActor = BasePropActor;
-
 // =============================================================================
 // EXEMPLO: ASL TOOL (Análise Semântico-Linguística)
 // =============================================================================
