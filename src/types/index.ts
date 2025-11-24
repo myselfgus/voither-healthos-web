@@ -9,7 +9,7 @@
  *       ├── PatientActor - Soberano dos seus dados
  *       ├── EntityActor - Profissionais e admins
  *       ├── ServiceActor - Unidades de saúde
- *       └── ToolActor - Capacidades (MCPs)
+ *       └── PropActor - Capacidades (MCPs)
  *   └── STAGES - Ambientes/Apps específicos
  *       ├── Tools - MCPs específicos do Stage
  *       ├── Personas - Agent + Tools + Guardrails + Context

@@ -119,7 +119,7 @@ export function ASLSection() {
 
         <div className="mt-16 text-center max-w-3xl mx-auto">
           <p className="text-lg leading-relaxed" style={{ lineHeight: "1.7" }}>
-            Modelos genéricos apenas transcrevem palavras. O nosso ToolActor ASL analisa a estrutura 
+            Modelos genéricos apenas transcrevem palavras. O nosso PropActor ASL analisa a estrutura 
             do pensamento. Transformamos a fala em biomarcadores digitais, detectando padrões sutis 
             invisíveis ao olho nu.
           </p>

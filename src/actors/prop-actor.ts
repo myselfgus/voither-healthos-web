@@ -1,14 +1,14 @@
 /**
- * ToolActor - Capacidades (MCP Remote Servers)
+ * PropActor - Capacidades (MCP Remote Servers)
  * 
- * ToolActors são MCPs que expõem capacidades específicas.
+ * PropActors são MCPs que expõem capacidades específicas.
  * Eles podem ser:
  * - capability: Fazem coisas específicas (ASL, GEM, transcrição)
  * - integration: Conectam sistemas externos (SISREG, labs)
  * - knowledge: Consultam bases de conhecimento (CID, protocolos)
  * - automation: Executam ações burocráticas (docs, forms, notify)
  * 
- * ToolActors são stateless ou com estado mínimo.
+ * PropActors são stateless ou com estado mínimo.
  * Eles são invocados por Personas (via Agent) para executar tarefas.
  */
 
@@ -34,14 +34,14 @@ export interface ToolConfig {
 }
 
 /**
- * BaseToolActor - Classe base para todos os Tools (MCPs)
+ * BasePropActor - Classe base para todos os Tools (MCPs)
  * 
  * Estende McpObject da Cloudflare para ser um MCP Remote Server.
  * Cada Tool expõe:
  * - tools: Lista de ferramentas MCP disponíveis
  * - resources: Lista de recursos MCP disponíveis (opcional)
  */
-export abstract class BaseToolActor extends McpObject {
+export abstract class BasePropActor extends McpObject {
   protected config: ToolConfig;
   
   /** Define os tools MCP disponíveis */
@@ -61,12 +61,12 @@ export abstract class BaseToolActor extends McpObject {
 
   /** Retorna lista de tools disponíveis */
   getToolDefinitions(): McpToolDefinition[] {
-    return (this.constructor as typeof BaseToolActor).tools;
+    return (this.constructor as typeof BasePropActor).tools;
   }
 
   /** Retorna lista de resources disponíveis */
   getResourceDefinitions(): McpResourceDefinition[] {
-    return (this.constructor as typeof BaseToolActor).resources;
+    return (this.constructor as typeof BasePropActor).resources;
   }
 }
 
@@ -109,7 +109,7 @@ export interface ClinicalMarker {
   severity: 'low' | 'moderate' | 'high';
 }
 
-export class ASLTool extends BaseToolActor {
+export class ASLTool extends BasePropActor {
   protected config: ToolConfig = {
     id: 'asl' as ToolId,
     name: 'Análise Semântico-Linguística',
@@ -292,7 +292,7 @@ export class ASLTool extends BaseToolActor {
 // EXEMPLO: INTEGRATION TOOL (SISREG)
 // =============================================================================
 
-export class SISREGTool extends BaseToolActor {
+export class SISREGTool extends BasePropActor {
   protected config: ToolConfig = {
     id: 'sisreg' as ToolId,
     name: 'Integração SISREG',
@@ -415,7 +415,7 @@ export class SISREGTool extends BaseToolActor {
 // EXEMPLO: AUTOMATION TOOL (Document Generator)
 // =============================================================================
 
-export class DocumentGeneratorTool extends BaseToolActor {
+export class DocumentGeneratorTool extends BasePropActor {
   protected config: ToolConfig = {
     id: 'doc-generator' as ToolId,
     name: 'Gerador de Documentos',
@@ -579,7 +579,7 @@ Gerado em: ${new Date().toISOString()}
 // EXPORTS
 // =============================================================================
 
-export const ToolActors = {
+export const PropActors = {
   ASLTool,
   SISREGTool,
   DocumentGeneratorTool,

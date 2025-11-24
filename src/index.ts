@@ -35,11 +35,11 @@ export {
 } from './actors/entity-service-actors';
 
 export {
-  BaseToolActor,
+  BasePropActor,
   ASLTool,
   SISREGTool,
   DocumentGeneratorTool,
-  ToolActors,
+  PropActors,
   type ToolConfig,
   type ASLAnalysisResult,
   type LinguisticPattern,

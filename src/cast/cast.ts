@@ -13,7 +13,7 @@
  *       ├── PatientActor (soberano)
  *       ├── EntityActor (profissionais)
  *       ├── ServiceActor (unidades)
- *       └── ToolActor (MCPs compartilhados)
+ *       └── PropActor (MCPs compartilhados)
  *   └── STAGES (ambientes/apps)
  *       ├── MedScribe
  *       ├── Regulação
@@ -35,7 +35,7 @@ import type {
 } from '../types';
 import { PatientActor } from '../actors/patient-actor';
 import { EntityActor, ServiceActor } from '../actors/entity-service-actors';
-import { BaseToolActor } from '../actors/tool-actor';
+import { BasePropActor } from '../actors/tool-actor';
 import { Stage, StageFactory } from '../stage/stage';
 
 // =============================================================================
@@ -56,7 +56,7 @@ export interface CastState {
   stages: Map<StageId, Stage>;
   
   /** Tools compartilhados (MCPs globais) */
-  sharedTools: Map<ToolId, BaseToolActor>;
+  sharedTools: Map<ToolId, BasePropActor>;
   
   /** Configuração do LLM Orchestrator */
   orchestratorConfig: OrchestratorConfig;
@@ -229,14 +229,14 @@ export class Cast {
   /**
    * Registra um Tool compartilhado (MCP global)
    */
-  registerSharedTool(toolId: ToolId, tool: BaseToolActor): void {
+  registerSharedTool(toolId: ToolId, tool: BasePropActor): void {
     this.state.sharedTools.set(toolId, tool);
   }
 
   /**
    * Obtém Tool compartilhado
    */
-  getSharedTool(toolId: ToolId): BaseToolActor | undefined {
+  getSharedTool(toolId: ToolId): BasePropActor | undefined {
     return this.state.sharedTools.get(toolId);
   }
 

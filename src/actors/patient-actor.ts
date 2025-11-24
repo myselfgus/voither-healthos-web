@@ -7,7 +7,7 @@
  * 1. PatientActor - Soberano dos seus dados (todo ser humano é paciente)
  * 2. EntityActor - Profissionais que acessam dados via ServiceActor
  * 3. ServiceActor - Unidades de saúde que intermediam acesso
- * 4. ToolActor - Capacidades (MCPs) que executam ações
+ * 4. PropActor - Capacidades (MCPs) que executam ações
  */
 
 import { Actor } from 'cloudflare:workers';

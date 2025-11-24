@@ -57,7 +57,7 @@ Entidades com identidade e estado persistente. Existem 4 tipos:
 | **PatientActor** | Soberano dos seus dados | Durable Object |
 | **EntityActor** | Profissionais de saúde | Durable Object |
 | **ServiceActor** | Unidades de saúde (cartório) | Durable Object |
-| **ToolActor** | Capacidades (MCPs) | McpObject |
+| **PropActor** | Capacidades (MCPs) | McpObject |
 
 ### Stages
 Ambientes/Apps específicos que usam os mesmos Actors mas têm Tools próprios:
@@ -129,7 +129,7 @@ healthos-core/
 │   ├── actors/
 │   │   ├── patient-actor.ts  # PatientActor
 │   │   ├── entity-service-actors.ts  # Entity e Service
-│   │   └── tool-actor.ts     # ToolActor (MCPs)
+│   │   └── tool-actor.ts     # PropActor (MCPs)
 │   ├── persona/
 │   │   └── persona.ts        # Persona, Agent, Guardrails
 │   ├── script/
@@ -554,7 +554,7 @@ CAST (HealthOS)
 │   ├── PatientActor  → Soberano dos dados (DO)
 │   ├── EntityActor   → Profissionais (DO)
 │   ├── ServiceActor  → Unidades/Cartório (DO)
-│   └── ToolActor     → MCPs compartilhados (McpObject)
+│   └── PropActor     → MCPs compartilhados (McpObject)
 │
 ├── STAGES (ambientes/apps)
 │   ├── Tools         → MCPs específicos do Stage
@@ -576,7 +576,7 @@ CAST (HealthOS)
 | `PatientActor` | `actors/patient-actor.ts` | Soberano dos dados |
 | `EntityActor` | `actors/entity-service-actors.ts` | Profissionais |
 | `ServiceActor` | `actors/entity-service-actors.ts` | Intermediário/Cartório |
-| `BaseToolActor` | `actors/tool-actor.ts` | MCP Remote Server |
+| `BasePropActor` | `actors/tool-actor.ts` | MCP Remote Server |
 | `Persona` | `persona/persona.ts` | Agent + Tools + Guardrails |
 | `Agent` | `persona/persona.ts` | O cérebro (LLM) |
 | `Script` | `script/script.ts` | Fluxos declarativos |
