@@ -1,0 +1,432 @@
+# =============================================================================
+# STAGE: MedScribe
+# Transcrição e documentação clínica automatizada
+# =============================================================================
+
+stage:
+  id: "medscribe"
+  name: "MedScribe"
+  description: "Transcrição e documentação clínica automatizada com análise linguística"
+  vendor: "voither"
+  version: "1.0.0"
+
+# -----------------------------------------------------------------------------
+# ACTORS que este Stage utiliza (do Cast)
+# -----------------------------------------------------------------------------
+actors:
+  - patient    # Lê/escreve histórico médico
+  - entity     # Profissional usando o sistema
+  - service    # Unidade de saúde
+
+# -----------------------------------------------------------------------------
+# TOOLS específicos deste Stage
+# -----------------------------------------------------------------------------
+tools:
+  # Capability Tools
+  - id: "transcriber"
+    name: "Transcritor de Áudio"
+    description: "Transcrição de áudio em tempo real usando Whisper"
+    category: "capability"
+    mcpTools:
+      - name: "transcribe_audio"
+        description: "Transcreve áudio em texto"
+        inputSchema:
+          type: "object"
+          properties:
+            audioUrl:
+              type: "string"
+              description: "URL do arquivo de áudio"
+            language:
+              type: "string"
+              default: "pt-BR"
+            speakerDiarization:
+              type: "boolean"
+              default: true
+          required: ["audioUrl"]
+
+      - name: "transcribe_stream"
+        description: "Transcrição em streaming (tempo real)"
+        inputSchema:
+          type: "object"
+          properties:
+            streamId:
+              type: "string"
+            language:
+              type: "string"
+              default: "pt-BR"
+          required: ["streamId"]
+
+  - id: "asl"
+    name: "Análise Semântico-Linguística"
+    description: "Analisa padrões linguísticos em transcrições clínicas"
+    category: "capability"
+    mcpTools:
+      - name: "analyze_speech"
+        description: "Análise completa de padrões linguísticos"
+        inputSchema:
+          type: "object"
+          properties:
+            transcription:
+              type: "string"
+            context:
+              type: "string"
+              enum: ["psychiatry", "general", "pediatric", "geriatric"]
+            focusAreas:
+              type: "array"
+              items:
+                type: "string"
+          required: ["transcription"]
+
+      - name: "extract_markers"
+        description: "Extrai marcadores linguísticos específicos"
+        inputSchema:
+          type: "object"
+          properties:
+            transcription:
+              type: "string"
+            markers:
+              type: "array"
+              items:
+                type: "string"
+          required: ["transcription", "markers"]
+
+  - id: "gem"
+    name: "Graph of Evolving Mind"
+    description: "Constrói grafo mental evolutivo do paciente"
+    category: "capability"
+    mcpTools:
+      - name: "build_graph"
+        description: "Constrói grafo a partir de análise"
+        inputSchema:
+          type: "object"
+          properties:
+            analysis:
+              type: "object"
+            previousGraph:
+              type: "object"
+          required: ["analysis"]
+
+      - name: "compare_graphs"
+        description: "Compara grafos de sessões diferentes"
+        inputSchema:
+          type: "object"
+          properties:
+            graphs:
+              type: "array"
+              items:
+                type: "object"
+          required: ["graphs"]
+
+  - id: "dimensional"
+    name: "Extrator Dimensional"
+    description: "Extrai 15 dimensões psicométricas da fala"
+    category: "capability"
+    mcpTools:
+      - name: "extract_dimensions"
+        description: "Extrai todas as 15 dimensões"
+        inputSchema:
+          type: "object"
+          properties:
+            transcription:
+              type: "string"
+            context:
+              type: "string"
+          required: ["transcription"]
+
+  # Knowledge Tools (compartilhados do Cast)
+  - id: "mcp://cast/cid"
+    name: "CID-10/11"
+    description: "Classificação Internacional de Doenças"
+    category: "knowledge"
+    shared: true
+
+  - id: "mcp://cast/protocols"
+    name: "Protocolos Clínicos"
+    description: "Base de protocolos clínicos"
+    category: "knowledge"
+    shared: true
+
+  # Automation Tools
+  - id: "doc-generator"
+    name: "Gerador de Documentos"
+    description: "Gera documentos clínicos estruturados"
+    category: "automation"
+    mcpTools:
+      - name: "generate_soap_note"
+        description: "Gera nota SOAP"
+        inputSchema:
+          type: "object"
+          properties:
+            subjective:
+              type: "string"
+            objective:
+              type: "string"
+            assessment:
+              type: "string"
+            plan:
+              type: "string"
+          required: ["subjective", "assessment"]
+
+      - name: "generate_summary"
+        description: "Gera resumo da consulta"
+        inputSchema:
+          type: "object"
+          properties:
+            consultation:
+              type: "object"
+            format:
+              type: "string"
+              enum: ["brief", "detailed", "patient_friendly"]
+          required: ["consultation"]
+
+# -----------------------------------------------------------------------------
+# PERSONAS disponíveis neste Stage
+# -----------------------------------------------------------------------------
+personas:
+  # Persona 1: Escuta Clínica (Ambient Listener)
+  - id: "ambient-listener"
+    name: "Escuta Clínica"
+    description: "Escuta e transcreve em tempo real, sem interromper"
+    trigger:
+      type: "auto"
+    agent:
+      model: "claude-sonnet-4-20250514"
+      temperature: 0.3
+      systemPrompt: |
+        Você é um assistente de escuta clínica silencioso.
+        
+        Sua função é:
+        1. Processar transcrições em tempo real
+        2. Identificar informações clinicamente relevantes
+        3. Extrair entidades (sintomas, medicamentos, diagnósticos)
+        4. Marcar momentos importantes para revisão
+        
+        REGRAS CRÍTICAS:
+        - NUNCA interrompa a consulta
+        - NUNCA fale diretamente com paciente ou médico
+        - Apenas observe, registre e analise
+        - Flag apenas casos CRÍTICOS (risco de vida)
+    tools:
+      - "transcriber"
+      - "asl"
+    guardrails:
+      - type: "custom"
+        id: "never_interrupt"
+        config:
+          blockedActions: ["speak", "alert_non_critical"]
+      - type: "timeout"
+        id: "session_timeout"
+        config:
+          maxDurationMs: 7200000  # 2 horas
+
+  # Persona 2: Documentador
+  - id: "documenter"
+    name: "Documentador Clínico"
+    description: "Transforma transcrições em documentação estruturada"
+    trigger:
+      type: "event"
+      event: "consultation_end"
+    agent:
+      model: "claude-sonnet-4-20250514"
+      temperature: 0.2
+      systemPrompt: |
+        Você é um documentador clínico especializado.
+        
+        Sua função é:
+        1. Transformar transcrições em documentação estruturada
+        2. Gerar notas SOAP completas e precisas
+        3. Codificar diagnósticos usando CID-10/11
+        4. Identificar necessidades de encaminhamento
+        5. Preparar prescrições (rascunho para validação)
+        
+        REGRAS:
+        - Use terminologia médica correta
+        - Seja preciso e objetivo
+        - Destaque informações críticas
+        - SEMPRE requeira validação do profissional para prescrições
+    tools:
+      - "asl"
+      - "gem"
+      - "dimensional"
+      - "mcp://cast/cid"
+      - "doc-generator"
+    guardrails:
+      - type: "require_validation"
+        id: "validate_docs"
+        config:
+          actions: ["prescription", "diagnosis_code", "referral"]
+      - type: "never_prescribe"
+        id: "no_auto_prescribe"
+
+  # Persona 3: Analisador
+  - id: "analyzer"
+    name: "Analisador Clínico"
+    description: "Análise profunda de padrões linguísticos e evolução"
+    trigger:
+      type: "manual"
+    agent:
+      model: "claude-sonnet-4-20250514"
+      temperature: 0.4
+      systemPrompt: |
+        Você é um analista clínico especializado em padrões linguísticos.
+        
+        Sua função é:
+        1. Analisar padrões de fala do paciente
+        2. Identificar marcadores de condições mentais
+        3. Comparar com sessões anteriores
+        4. Gerar insights para o profissional
+        5. Construir e atualizar o grafo mental
+        
+        IMPORTANTE:
+        - Suas análises são SUGESTÕES, não diagnósticos
+        - Sempre contextualize com "baseado nos padrões observados"
+        - Destaque mudanças significativas entre sessões
+    tools:
+      - "asl"
+      - "gem"
+      - "dimensional"
+      - "mcp://cast/protocols"
+    guardrails:
+      - type: "custom"
+        id: "disclaimer"
+        config:
+          appendToOutput: "Esta análise é uma sugestão baseada em padrões linguísticos e deve ser validada clinicamente."
+
+# -----------------------------------------------------------------------------
+# SCRIPTS (fluxos declarativos)
+# -----------------------------------------------------------------------------
+scripts:
+  # Script principal: Fluxo de Consulta
+  - id: "consultation-flow"
+    name: "Fluxo de Consulta"
+    description: "Script padrão para consultas médicas"
+    steps:
+      # Início da consulta
+      - id: "start"
+        trigger: "consultation_start"
+        activate: "ambient-listener"
+        actions:
+          - type: "generate"
+            target: "session_context"
+          - type: "notify"
+            target: "entity_actor"
+            params:
+              message: "Escuta clínica iniciada"
+
+      # Durante a consulta (streaming)
+      - id: "during"
+        trigger: "speech_segment"
+        activate: "ambient-listener"
+        actions:
+          - type: "generate"
+            target: "transcription_segment"
+          - type: "save_to"
+            target: "session.transcription"
+
+      # Fim da consulta
+      - id: "end"
+        trigger: "consultation_end"
+        activate: "documenter"
+        actions:
+          - type: "generate"
+            target: "soap_note"
+          - type: "generate"
+            target: "summary"
+        conditions:
+          - if: "analysis.needsReferral === true"
+            then:
+              - type: "generate"
+                target: "referral_form"
+              - type: "queue"
+                target: "regulation_queue"
+          - if: "analysis.needsPrescription === true"
+            then:
+              - type: "generate"
+                target: "prescription_draft"
+                params:
+                  requiresValidation: true
+
+      # Validação pelo profissional
+      - id: "validate"
+        trigger: "professional_validates"
+        actions:
+          - type: "validate"
+            target: "soap_note"
+          - type: "save_to"
+            target: "patient_actor.medical_records"
+          - type: "notify"
+            target: "patient_actor"
+            params:
+              message: "Resumo da consulta disponível no seu app"
+
+  # Script de análise sob demanda
+  - id: "analysis-flow"
+    name: "Análise Sob Demanda"
+    description: "Análise profunda quando solicitada pelo profissional"
+    steps:
+      - id: "analyze"
+        trigger: "analysis_requested"
+        activate: "analyzer"
+        actions:
+          - type: "generate"
+            target: "deep_analysis"
+          - type: "generate"
+            target: "evolution_comparison"
+            params:
+              lookbackSessions: 5
+
+# -----------------------------------------------------------------------------
+# AUTOMAÇÃO
+# -----------------------------------------------------------------------------
+automation:
+  # Nível 1: Sempre automático
+  auto_execute:
+    - "transcription_save"
+    - "timestamp_events"
+    - "extract_entities"
+    - "update_session_context"
+
+  # Nível 2: Automático com notificação
+  auto_with_notification:
+    - "soap_note_draft"
+    - "summary_generation"
+    - "pattern_detection"
+
+  # Nível 3: Requer validação
+  require_validation:
+    - "diagnosis_coding"
+    - "referral_submission"
+    - "prescription_draft"
+
+  # Nível 4: Requer assinatura digital
+  require_signature:
+    - "prescription_final"
+    - "medical_certificate"
+    - "sick_leave"
+
+# -----------------------------------------------------------------------------
+# UI
+# -----------------------------------------------------------------------------
+ui:
+  entrypoint: "/dashboard"
+  assets: "dist/ui"
+  routes:
+    - path: "/dashboard"
+      component: "Dashboard"
+    - path: "/transcription"
+      component: "TranscriptionView"
+    - path: "/analysis"
+      component: "AnalysisView"
+    - path: "/reports"
+      component: "ReportsView"
+    - path: "/settings"
+      component: "SettingsView"
+
+# -----------------------------------------------------------------------------
+# PERMISSÕES
+# -----------------------------------------------------------------------------
+requiredScopes:
+  - dataTypes: ["consultations", "medical_history"]
+    actions: ["read", "write"]
+    durationSeconds: 3600
+    reason: "Documentação de consulta"

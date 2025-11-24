@@ -1,0 +1,24 @@
+{
+  "name": "@healthos/cast",
+  "version": "0.1.0",
+  "description": "HealthOS Cast - Sistema Operacional e Actors Universais",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "tsc",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "agents": "^0.0.1",
+    "@cloudflare/actors": "^0.0.1",
+    "@healthos/shared": "workspace:*",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240000.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^3.0.0"
+  }
+}
