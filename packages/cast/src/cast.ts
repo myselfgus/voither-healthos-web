@@ -32,11 +32,35 @@ import type {
   StageManifest,
   LLMModel,
   StageEvent,
-} from '../types';
-import { PatientActor } from '../actors/patient-actor';
-import { EntityActor, ServiceActor } from '../actors/entity-service-actors';
-import { BaseToolActor } from '../actors/tool-actor';
-import { Stage, StageFactory } from '../stage/stage';
+} from '@healthos/shared';
+import { PatientActor } from './actors/patient';
+import { EntityActor, ServiceActor } from './actors/entity-service';
+import { BaseToolActor } from './actors/tool';
+
+// Stage é importado dinamicamente ou via interface para evitar dependência circular
+interface Stage {
+  getId(): StageId;
+  getName(): string;
+  initialize(manifest: StageManifest): Promise<void>;
+  startSession(entityActorId: ActorId, serviceActorId: ActorId, initialPersonaId?: PersonaId): Promise<StageSession>;
+  getSession(sessionId: SessionId): StageSession | undefined;
+  attachPatient(sessionId: SessionId, patientActorId: ActorId, accessGrant: AccessGrant): Promise<void>;
+  processWithPersona(sessionId: SessionId, input: string): Promise<any>;
+}
+
+interface StageSession {
+  id: SessionId;
+  entityActorId: ActorId;
+  serviceActorId: ActorId;
+  patientActorId?: ActorId;
+  accessGrant?: AccessGrant;
+  activePersonaId: PersonaId;
+}
+
+// StageFactory será implementado em @healthos/stage
+interface StageFactory {
+  createFromManifest(manifest: StageManifest): Promise<Stage>;
+}
 
 // =============================================================================
 // CAST STATE
@@ -89,11 +113,11 @@ export interface OrchestratorConfig {
 export class Cast {
   private state: CastState;
   private env: Env;
-  private stageFactory: StageFactory;
-  
+  private stageFactory?: StageFactory;
+
   constructor(env: Env) {
     this.env = env;
-    this.stageFactory = new StageFactory(env);
+    // StageFactory é injetado via setStageFactory() para evitar dependência circular
     
     this.state = {
       id: 'healthos',
@@ -190,9 +214,19 @@ export class Cast {
   // ---------------------------------------------------------------------------
 
   /**
+   * Injeta o StageFactory (para evitar dependência circular)
+   */
+  setStageFactory(factory: StageFactory): void {
+    this.stageFactory = factory;
+  }
+
+  /**
    * Registra um Stage no Cast
    */
   async registerStage(manifest: StageManifest): Promise<Stage> {
+    if (!this.stageFactory) {
+      throw new Error('StageFactory not set. Call setStageFactory() first.');
+    }
     const stage = await this.stageFactory.createFromManifest(manifest);
     this.state.stages.set(manifest.id, stage);
     return stage;

@@ -19,7 +19,7 @@ import type {
   McpToolDefinition,
   McpResourceDefinition,
   JsonSchema,
-} from '../types';
+} from '@healthos/shared';
 
 // =============================================================================
 // TOOL ACTOR BASE

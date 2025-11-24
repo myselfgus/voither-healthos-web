@@ -10,10 +10,12 @@
  */
 
 // Stage base
-export { Stage } from './stage';
+export { Stage, StageFactory } from './stage';
 
 // Act (Workflow + Orquestração)
-export { Act } from './act/script'; // TODO: renomear para act.ts
+// Script é exportado como Act para alinhar com a nomenclatura da arquitetura
+export { Script as Act, ScriptBuilder, StepBuilder } from './act/script';
+export type { ScriptResult, ScriptContext, StepResult } from './act/script';
 
 // Persona
 export { Persona } from './persona/persona';

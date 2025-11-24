@@ -17,8 +17,8 @@ import type {
   EntityRole,
   ServiceType,
   PersonaManifest,
-} from '../types';
-import { BaseActor, ActorState } from './patient-actor';
+} from '@healthos/shared';
+import { BaseActor, ActorState } from './patient';
 
 // =============================================================================
 // ENTITY ACTOR

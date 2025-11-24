@@ -27,8 +27,12 @@ import type {
   PersonaResponse,
   ActionResult,
   AccessGrant,
-} from '../types';
-import { BaseToolActor } from './tool-actor';
+} from '@healthos/shared';
+
+// Interface para Tools (implementação em @healthos/cast)
+interface BaseToolActor {
+  call(method: string, params: unknown): Promise<unknown>;
+}
 
 // =============================================================================
 // AGENT

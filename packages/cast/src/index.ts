@@ -11,11 +11,13 @@
 
 // Cast Manager
 export { Cast } from './cast';
+export type { CastRequest, CastResponse, OrchestratorDecision } from './cast';
 
 // Actors Universais
-export { PatientActor } from './actors/patient';
+export { PatientActor, BaseActor } from './actors/patient';
+export type { ActorState } from './actors/patient';
 export { EntityActor, ServiceActor } from './actors/entity-service';
-export { ToolActor } from './actors/tool';
+export { BaseToolActor } from './actors/tool';
 
 // Re-export types
 export * from '@healthos/shared';

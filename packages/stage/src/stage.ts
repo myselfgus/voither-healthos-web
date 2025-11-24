@@ -30,12 +30,27 @@ import type {
   AccessGrant,
   AutomationRule,
   PersonaResponse,
-} from '../types';
-import { Persona, AgentContext } from '../persona/persona';
-import { Script, ScriptResult } from '../script/script';
-import { BaseToolActor } from '../actors/tool-actor';
-import { PatientActor } from '../actors/patient-actor';
-import { EntityActor, ServiceActor } from '../actors/entity-service-actors';
+} from '@healthos/shared';
+import { Persona, AgentContext } from './persona/persona';
+import { Script, ScriptResult } from './act/script';
+
+// Types para Actors (importados via interface, implementação em @healthos/cast)
+interface BaseToolActor {
+  call(method: string, params: unknown): Promise<unknown>;
+}
+
+interface PatientActor {
+  getId(): ActorId;
+}
+
+interface EntityActor {
+  getId(): ActorId;
+}
+
+interface ServiceActor {
+  getId(): ActorId;
+  isEntityLinked(entityId: ActorId): boolean;
+}
 
 // =============================================================================
 // STAGE STATE

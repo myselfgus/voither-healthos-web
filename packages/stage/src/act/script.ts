@@ -26,7 +26,7 @@ import type {
   ActorId,
   StageEvent,
   ActionResult,
-} from '../types';
+} from '@healthos/shared';
 import { Persona, AgentContext } from '../persona/persona';
 
 // =============================================================================
