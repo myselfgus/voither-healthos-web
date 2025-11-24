@@ -1,0 +1,373 @@
+/**
+ * ============================================
+ * NEUMORPHIC DESIGN SYSTEM
+ * ============================================
+ * Soft UI shadows creating depth through light/shadow
+ * AI-EDITABLE: Modify shadow values to adjust depth feel
+ */
+
+/* ========================================
+ * BASE NEUMORPHIC EFFECTS
+ * ======================================== */
+
+.neu {
+  background: var(--color-porcelain);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    6px 6px 12px oklch(0.85 0.005 264 / 0.5),
+    -6px -6px 12px oklch(1 0 0 / 0.8);
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.neu-sm {
+  box-shadow:
+    3px 3px 6px oklch(0.85 0.005 264 / 0.4),
+    -3px -3px 6px oklch(1 0 0 / 0.7);
+}
+
+.neu-lg {
+  box-shadow:
+    10px 10px 20px oklch(0.82 0.005 264 / 0.5),
+    -10px -10px 20px oklch(1 0 0 / 0.9);
+}
+
+.neu-xl {
+  box-shadow:
+    15px 15px 30px oklch(0.80 0.005 264 / 0.5),
+    -15px -15px 30px oklch(1 0 0 / 0.95);
+}
+
+/* ========================================
+ * NEUMORPHIC INSET (Pressed state)
+ * ======================================== */
+
+.neu-inset {
+  background: var(--color-porcelain);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    inset 4px 4px 8px oklch(0.85 0.005 264 / 0.5),
+    inset -4px -4px 8px oklch(1 0 0 / 0.8);
+}
+
+.neu-inset-sm {
+  box-shadow:
+    inset 2px 2px 4px oklch(0.85 0.005 264 / 0.4),
+    inset -2px -2px 4px oklch(1 0 0 / 0.7);
+}
+
+.neu-inset-lg {
+  box-shadow:
+    inset 6px 6px 12px oklch(0.82 0.005 264 / 0.5),
+    inset -6px -6px 12px oklch(1 0 0 / 0.9);
+}
+
+/* ========================================
+ * NEUMORPHIC BUTTON
+ * ======================================== */
+
+.neu-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-porcelain);
+  border: none;
+  border-radius: var(--radius-xl);
+  font-family: var(--font-ui);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  box-shadow:
+    6px 6px 12px oklch(0.85 0.005 264 / 0.5),
+    -6px -6px 12px oklch(1 0 0 / 0.8);
+  transition: all var(--duration-fast) var(--ease-spring);
+}
+
+.neu-button:hover {
+  box-shadow:
+    8px 8px 16px oklch(0.83 0.005 264 / 0.55),
+    -8px -8px 16px oklch(1 0 0 / 0.85);
+  transform: translateY(-1px);
+}
+
+.neu-button:active {
+  box-shadow:
+    inset 4px 4px 8px oklch(0.85 0.005 264 / 0.5),
+    inset -4px -4px 8px oklch(1 0 0 / 0.8);
+  transform: translateY(0);
+}
+
+/* Primary variant */
+.neu-button-primary {
+  background: linear-gradient(
+    135deg,
+    oklch(0.72 0.10 260) 0%,
+    oklch(0.65 0.12 265) 100%
+  );
+  color: white;
+  box-shadow:
+    6px 6px 12px oklch(0.55 0.10 260 / 0.4),
+    -6px -6px 12px oklch(0.85 0.05 260 / 0.3),
+    inset 0 1px 0 oklch(1 0 0 / 0.2);
+}
+
+.neu-button-primary:hover {
+  box-shadow:
+    8px 8px 16px oklch(0.50 0.12 260 / 0.5),
+    -8px -8px 16px oklch(0.85 0.05 260 / 0.4),
+    inset 0 1px 0 oklch(1 0 0 / 0.25);
+}
+
+.neu-button-primary:active {
+  box-shadow:
+    inset 4px 4px 8px oklch(0.50 0.12 260 / 0.4),
+    inset -2px -2px 4px oklch(0.80 0.08 260 / 0.3);
+}
+
+/* ========================================
+ * NEUMORPHIC CARD
+ * ======================================== */
+
+.neu-card {
+  background: var(--color-porcelain);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-6);
+  box-shadow:
+    8px 8px 16px oklch(0.85 0.005 264 / 0.5),
+    -8px -8px 16px oklch(1 0 0 / 0.8);
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.neu-card:hover {
+  box-shadow:
+    12px 12px 24px oklch(0.82 0.005 264 / 0.55),
+    -12px -12px 24px oklch(1 0 0 / 0.85);
+  transform: translateY(-2px);
+}
+
+/* Flat card variant (less depth) */
+.neu-card-flat {
+  box-shadow:
+    4px 4px 8px oklch(0.88 0.005 264 / 0.4),
+    -4px -4px 8px oklch(1 0 0 / 0.7);
+}
+
+/* ========================================
+ * NEUMORPHIC INPUT
+ * ======================================== */
+
+.neu-input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-porcelain);
+  border: none;
+  border-radius: var(--radius-xl);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  box-shadow:
+    inset 3px 3px 6px oklch(0.88 0.005 264 / 0.5),
+    inset -3px -3px 6px oklch(1 0 0 / 0.7);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.neu-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.neu-input:focus {
+  outline: none;
+  box-shadow:
+    inset 4px 4px 8px oklch(0.85 0.005 264 / 0.6),
+    inset -4px -4px 8px oklch(1 0 0 / 0.8),
+    0 0 0 2px oklch(0.70 0.12 260 / 0.3);
+}
+
+/* ========================================
+ * NEUMORPHIC TOGGLE / SWITCH
+ * ======================================== */
+
+.neu-toggle {
+  position: relative;
+  width: 56px;
+  height: 32px;
+  background: var(--color-porcelain);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  box-shadow:
+    inset 3px 3px 6px oklch(0.88 0.005 264 / 0.5),
+    inset -3px -3px 6px oklch(1 0 0 / 0.7);
+  transition: all var(--duration-fast) var(--ease-spring);
+}
+
+.neu-toggle-knob {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  background: var(--color-porcelain);
+  border-radius: var(--radius-full);
+  box-shadow:
+    3px 3px 6px oklch(0.85 0.005 264 / 0.5),
+    -3px -3px 6px oklch(1 0 0 / 0.8);
+  transition: all var(--duration-fast) var(--ease-spring);
+}
+
+.neu-toggle.active {
+  background: oklch(0.70 0.10 260 / 0.2);
+}
+
+.neu-toggle.active .neu-toggle-knob {
+  left: 28px;
+  background: linear-gradient(
+    135deg,
+    oklch(0.72 0.10 260) 0%,
+    oklch(0.65 0.12 265) 100%
+  );
+}
+
+/* ========================================
+ * NEUMORPHIC PROGRESS
+ * ======================================== */
+
+.neu-progress {
+  width: 100%;
+  height: 8px;
+  background: var(--color-porcelain);
+  border-radius: var(--radius-full);
+  box-shadow:
+    inset 2px 2px 4px oklch(0.88 0.005 264 / 0.5),
+    inset -2px -2px 4px oklch(1 0 0 / 0.7);
+  overflow: hidden;
+}
+
+.neu-progress-bar {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    oklch(0.72 0.10 260) 0%,
+    oklch(0.65 0.12 265) 100%
+  );
+  border-radius: var(--radius-full);
+  box-shadow:
+    2px 0 4px oklch(0.60 0.12 260 / 0.3);
+  transition: width var(--duration-slow) var(--ease-out);
+}
+
+/* ========================================
+ * NEUMORPHIC ICON BUTTON
+ * ======================================== */
+
+.neu-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: var(--color-porcelain);
+  border: none;
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  box-shadow:
+    5px 5px 10px oklch(0.85 0.005 264 / 0.5),
+    -5px -5px 10px oklch(1 0 0 / 0.8);
+  transition: all var(--duration-fast) var(--ease-spring);
+}
+
+.neu-icon-btn:hover {
+  box-shadow:
+    7px 7px 14px oklch(0.83 0.005 264 / 0.55),
+    -7px -7px 14px oklch(1 0 0 / 0.85);
+}
+
+.neu-icon-btn:active {
+  box-shadow:
+    inset 3px 3px 6px oklch(0.85 0.005 264 / 0.5),
+    inset -3px -3px 6px oklch(1 0 0 / 0.8);
+}
+
+.neu-icon-btn svg {
+  width: 24px;
+  height: 24px;
+  color: var(--color-text-secondary);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.neu-icon-btn:hover svg {
+  color: var(--color-prisma);
+}
+
+/* ========================================
+ * NEUMORPHIC CIRCULAR BUTTON
+ * ======================================== */
+
+.neu-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: var(--color-porcelain);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  box-shadow:
+    8px 8px 16px oklch(0.85 0.005 264 / 0.5),
+    -8px -8px 16px oklch(1 0 0 / 0.8);
+  transition: all var(--duration-fast) var(--ease-spring);
+}
+
+.neu-circle:hover {
+  box-shadow:
+    10px 10px 20px oklch(0.82 0.005 264 / 0.55),
+    -10px -10px 20px oklch(1 0 0 / 0.85);
+  transform: scale(1.05);
+}
+
+.neu-circle:active {
+  box-shadow:
+    inset 4px 4px 8px oklch(0.85 0.005 264 / 0.5),
+    inset -4px -4px 8px oklch(1 0 0 / 0.8);
+  transform: scale(0.98);
+}
+
+/* ========================================
+ * NEUMORPHIC DIVIDER
+ * ======================================== */
+
+.neu-divider {
+  height: 2px;
+  background: var(--color-porcelain);
+  border-radius: var(--radius-full);
+  box-shadow:
+    inset 1px 1px 2px oklch(0.88 0.005 264 / 0.5),
+    0 1px 0 oklch(1 0 0 / 0.8);
+}
+
+/* ========================================
+ * COMBINED: NEUMORPHIC + GLASS
+ * Hybrid effect for special elements
+ * ======================================== */
+
+.neu-glass {
+  background: oklch(0.98 0.002 264 / 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-xl);
+  border: 1px solid oklch(1 0 0 / 0.15);
+  box-shadow:
+    6px 6px 12px oklch(0.85 0.005 264 / 0.3),
+    -6px -6px 12px oklch(1 0 0 / 0.5);
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.neu-glass:hover {
+  box-shadow:
+    8px 8px 16px oklch(0.83 0.005 264 / 0.35),
+    -8px -8px 16px oklch(1 0 0 / 0.6);
+  border-color: oklch(1 0 0 / 0.25);
+}
