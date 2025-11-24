@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "healthos-cast",
-  "main": "src/cast/cast.ts",
+  "main": "packages/cast/src/cast.ts",
   "compatibility_date": "2024-12-01",
   "compatibility_flags": ["nodejs_compat"],
   

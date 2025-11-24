@@ -1,11 +1,16 @@
 /**
  * EntityActor e ServiceActor
- * 
+ *
  * EntityActor - Profissionais que acessam dados via ServiceActor
  * ServiceActor - Unidades de saúde que intermediam acesso (cartório/garantidor)
+ *
+ * Implementados como Cloudflare Durable Objects para:
+ * - Estado persistente e consistente
+ * - Acesso via HTTP fetch()
+ * - Comunicação entre actors
  */
 
-import { Actor } from 'cloudflare:workers';
+import { DurableObject } from 'cloudflare:workers';
 import type {
   ActorId,
   StageId,
@@ -19,6 +24,14 @@ import type {
   PersonaManifest,
 } from '@healthos/shared';
 import { BaseActor, ActorState } from './patient';
+
+// Environment interface
+interface Env {
+  PATIENT_ACTORS: DurableObjectNamespace;
+  ENTITY_ACTORS: DurableObjectNamespace;
+  SERVICE_ACTORS: DurableObjectNamespace;
+  [key: string]: unknown;
+}
 
 // =============================================================================
 // ENTITY ACTOR
@@ -80,10 +93,15 @@ export interface EntityPreferences {
 
 /**
  * EntityActor - Profissionais de saúde
- * 
+ *
  * EntityActors representam profissionais (médicos, enfermeiros, etc.).
  * Eles NUNCA acessam dados de pacientes diretamente - sempre via ServiceActor.
- * 
+ *
+ * Implementado como Cloudflare Durable Object para:
+ * - Estado persistente do profissional
+ * - Gerenciamento de sessões ativas
+ * - Vinculação com ServiceActors
+ *
  * Fluxo:
  * 1. Entity se vincula a um ou mais ServiceActors
  * 2. Entity inicia sessão em um Stage via ServiceActor
@@ -91,7 +109,10 @@ export interface EntityPreferences {
  * 4. Se autorizado, Entity pode operar com Personas
  */
 export class EntityActor extends BaseActor<EntityState> {
-  
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+  }
+
   protected initializeState(id: ActorId): EntityState {
     return {
       id,
@@ -117,6 +138,99 @@ export class EntityActor extends BaseActor<EntityState> {
     };
   }
 
+  /** HTTP request handler com rotas específicas do Entity */
+  protected override async handleRequest(
+    path: string,
+    method: string,
+    body: Record<string, unknown>
+  ): Promise<unknown> {
+    const id = this.ctx.id.toString() as ActorId;
+    await this.loadOrInitializeState(id);
+
+    switch (path) {
+      case '/credentials':
+        if (method === 'PUT') {
+          await this.setCredentials(body.credentials as EntityCredential[]);
+          return { success: true };
+        }
+        if (method === 'GET') {
+          return { credentials: this.actorState.credentials };
+        }
+        break;
+
+      case '/role':
+        if (method === 'PUT') {
+          await this.setRole(body.role as EntityRole);
+          return { success: true };
+        }
+        break;
+
+      case '/link-service':
+        if (method === 'POST') {
+          await this.linkToService(body.serviceActorId as ActorId);
+          return { success: true };
+        }
+        break;
+
+      case '/unlink-service':
+        if (method === 'POST') {
+          await this.unlinkFromService(body.serviceActorId as ActorId);
+          return { success: true };
+        }
+        break;
+
+      case '/start-session':
+        if (method === 'POST') {
+          const session = await this.startSession(
+            body.stageId as StageId,
+            body.serviceActorId as ActorId,
+            body.personaId as PersonaId
+          );
+          return session;
+        }
+        break;
+
+      case '/attach-patient':
+        if (method === 'POST') {
+          await this.attachPatient(body.patientActorId as ActorId, body.accessGrant as AccessGrant);
+          return { success: true };
+        }
+        break;
+
+      case '/end-session':
+        if (method === 'POST') {
+          await this.endSession();
+          return { success: true };
+        }
+        break;
+
+      case '/active-session':
+        if (method === 'GET') {
+          return { session: this.getActiveSession() };
+        }
+        break;
+
+      case '/personas':
+        if (method === 'GET') {
+          return { personas: this.getAvailablePersonas() };
+        }
+        if (method === 'PUT') {
+          await this.setAvailablePersonas(body.personaIds as PersonaId[]);
+          return { success: true };
+        }
+        break;
+
+      case '/switch-persona':
+        if (method === 'POST') {
+          await this.switchPersona(body.personaId as PersonaId);
+          return { success: true };
+        }
+        break;
+    }
+
+    return super.handleRequest(path, method, body);
+  }
+
   // ---------------------------------------------------------------------------
   // SETUP
   // ---------------------------------------------------------------------------
@@ -125,25 +239,28 @@ export class EntityActor extends BaseActor<EntityState> {
    * Configura credenciais do profissional
    */
   async setCredentials(credentials: EntityCredential[]): Promise<void> {
-    this.state.credentials = credentials;
-    this.state.updatedAt = new Date();
+    this.actorState.credentials = credentials;
+    this.actorState.updatedAt = new Date();
+    await this.persistState();
   }
 
   /**
    * Define o papel do profissional
    */
   async setRole(role: EntityRole): Promise<void> {
-    this.state.role = role;
-    this.state.updatedAt = new Date();
+    this.actorState.role = role;
+    this.actorState.updatedAt = new Date();
+    await this.persistState();
   }
 
   /**
    * Vincula a um ServiceActor
    */
   async linkToService(serviceActorId: ActorId): Promise<void> {
-    if (!this.state.linkedServices.includes(serviceActorId)) {
-      this.state.linkedServices.push(serviceActorId);
-      this.state.updatedAt = new Date();
+    if (!this.actorState.linkedServices.includes(serviceActorId)) {
+      this.actorState.linkedServices.push(serviceActorId);
+      this.actorState.updatedAt = new Date();
+      await this.persistState();
     }
   }
 
@@ -151,10 +268,11 @@ export class EntityActor extends BaseActor<EntityState> {
    * Desvincula de um ServiceActor
    */
   async unlinkFromService(serviceActorId: ActorId): Promise<void> {
-    const index = this.state.linkedServices.indexOf(serviceActorId);
+    const index = this.actorState.linkedServices.indexOf(serviceActorId);
     if (index > -1) {
-      this.state.linkedServices.splice(index, 1);
-      this.state.updatedAt = new Date();
+      this.actorState.linkedServices.splice(index, 1);
+      this.actorState.updatedAt = new Date();
+      await this.persistState();
     }
   }
 
@@ -165,26 +283,22 @@ export class EntityActor extends BaseActor<EntityState> {
   /**
    * Inicia uma sessão em um Stage
    */
-  async startSession(
-    stageId: StageId,
-    serviceActorId: ActorId,
-    personaId: PersonaId
-  ): Promise<EntitySession> {
+  async startSession(stageId: StageId, serviceActorId: ActorId, personaId: PersonaId): Promise<EntitySession> {
     // Verifica se está vinculado ao service
-    if (!this.state.linkedServices.includes(serviceActorId)) {
+    if (!this.actorState.linkedServices.includes(serviceActorId)) {
       throw new Error('Entity not linked to this service');
     }
-    
+
     // Verifica se persona está disponível
-    if (!this.state.availablePersonas.includes(personaId)) {
+    if (!this.actorState.availablePersonas.includes(personaId)) {
       throw new Error('Persona not available for this entity');
     }
-    
+
     // Encerra sessão anterior se existir
-    if (this.state.activeSession) {
+    if (this.actorState.activeSession) {
       await this.endSession();
     }
-    
+
     const session: EntitySession = {
       id: crypto.randomUUID() as SessionId,
       stageId,
@@ -192,50 +306,50 @@ export class EntityActor extends BaseActor<EntityState> {
       startedAt: new Date(),
       personaId,
     };
-    
-    this.state.activeSession = session;
-    this.state.activePersona = personaId;
-    this.state.updatedAt = new Date();
-    
+
+    this.actorState.activeSession = session;
+    this.actorState.activePersona = personaId;
+    this.actorState.updatedAt = new Date();
+    await this.persistState();
+
     return session;
   }
 
   /**
    * Associa paciente à sessão atual (após autorização)
    */
-  async attachPatient(
-    patientActorId: ActorId,
-    accessGrant: AccessGrant
-  ): Promise<void> {
-    if (!this.state.activeSession) {
+  async attachPatient(patientActorId: ActorId, accessGrant: AccessGrant): Promise<void> {
+    if (!this.actorState.activeSession) {
       throw new Error('No active session');
     }
-    
-    this.state.activeSession.patientActorId = patientActorId;
-    this.state.activeSession.accessGrant = accessGrant;
-    this.state.updatedAt = new Date();
+
+    this.actorState.activeSession.patientActorId = patientActorId;
+    this.actorState.activeSession.accessGrant = accessGrant;
+    this.actorState.updatedAt = new Date();
+    await this.persistState();
   }
 
   /**
    * Encerra a sessão atual
    */
   async endSession(): Promise<void> {
-    if (!this.state.activeSession) {
+    if (!this.actorState.activeSession) {
       return;
     }
-    
+
     // Aqui poderia notificar o ServiceActor para revogar grants
-    
-    this.state.activeSession = undefined;
-    this.state.activePersona = undefined;
-    this.state.updatedAt = new Date();
+
+    this.actorState.activeSession = undefined;
+    this.actorState.activePersona = undefined;
+    this.actorState.updatedAt = new Date();
+    await this.persistState();
   }
 
   /**
    * Retorna a sessão ativa
    */
   getActiveSession(): EntitySession | undefined {
-    return this.state.activeSession;
+    return this.actorState.activeSession;
   }
 
   // ---------------------------------------------------------------------------
@@ -246,32 +360,34 @@ export class EntityActor extends BaseActor<EntityState> {
    * Define personas disponíveis para este Entity
    */
   async setAvailablePersonas(personaIds: PersonaId[]): Promise<void> {
-    this.state.availablePersonas = personaIds;
-    this.state.updatedAt = new Date();
+    this.actorState.availablePersonas = personaIds;
+    this.actorState.updatedAt = new Date();
+    await this.persistState();
   }
 
   /**
    * Troca a persona ativa (dentro da mesma sessão)
    */
   async switchPersona(personaId: PersonaId): Promise<void> {
-    if (!this.state.activeSession) {
+    if (!this.actorState.activeSession) {
       throw new Error('No active session');
     }
-    
-    if (!this.state.availablePersonas.includes(personaId)) {
+
+    if (!this.actorState.availablePersonas.includes(personaId)) {
       throw new Error('Persona not available');
     }
-    
-    this.state.activePersona = personaId;
-    this.state.activeSession.personaId = personaId;
-    this.state.updatedAt = new Date();
+
+    this.actorState.activePersona = personaId;
+    this.actorState.activeSession.personaId = personaId;
+    this.actorState.updatedAt = new Date();
+    await this.persistState();
   }
 
   /**
    * Retorna personas disponíveis
    */
   getAvailablePersonas(): PersonaId[] {
-    return this.state.availablePersonas;
+    return this.actorState.availablePersonas;
   }
 
   // ---------------------------------------------------------------------------
@@ -353,10 +469,15 @@ export interface ServiceConfig {
 
 /**
  * ServiceActor - Unidades de saúde
- * 
+ *
  * ServiceActor é o intermediário entre EntityActor e PatientActor.
  * Funciona como um "cartório" - garante, valida e registra acessos.
- * 
+ *
+ * Implementado como Cloudflare Durable Object para:
+ * - Estado persistente da unidade de saúde
+ * - Gerenciamento de sessões ativas
+ * - Audit trail de todos os acessos
+ *
  * Responsabilidades:
  * 1. Validar que Entity está autorizado a operar
  * 2. Solicitar acesso ao PatientActor em nome do Entity
@@ -364,7 +485,10 @@ export interface ServiceConfig {
  * 4. Garantir que políticas de acesso são respeitadas
  */
 export class ServiceActor extends BaseActor<ServiceState> {
-  
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+  }
+
   protected initializeState(id: ActorId): ServiceState {
     return {
       id,
@@ -393,6 +517,97 @@ export class ServiceActor extends BaseActor<ServiceState> {
     };
   }
 
+  /** HTTP request handler com rotas específicas do Service */
+  protected override async handleRequest(
+    path: string,
+    method: string,
+    body: Record<string, unknown>
+  ): Promise<unknown> {
+    const id = this.ctx.id.toString() as ActorId;
+    await this.loadOrInitializeState(id);
+
+    switch (path) {
+      case '/setup':
+        if (method === 'POST') {
+          await this.setup(body as any);
+          return { success: true };
+        }
+        break;
+
+      case '/enable-stage':
+        if (method === 'POST') {
+          await this.enableStage(body.stageId as StageId);
+          return { success: true };
+        }
+        break;
+
+      case '/disable-stage':
+        if (method === 'POST') {
+          await this.disableStage(body.stageId as StageId);
+          return { success: true };
+        }
+        break;
+
+      case '/link-entity':
+        if (method === 'POST') {
+          await this.linkEntity(body.entityActorId as ActorId);
+          return { success: true };
+        }
+        break;
+
+      case '/unlink-entity':
+        if (method === 'POST') {
+          await this.unlinkEntity(body.entityActorId as ActorId);
+          return { success: true };
+        }
+        break;
+
+      case '/is-entity-linked':
+        if (method === 'POST') {
+          return { linked: this.isEntityLinked(body.entityActorId as ActorId) };
+        }
+        break;
+
+      case '/start-session':
+        if (method === 'POST') {
+          const session = await this.startSession(body.entityActorId as ActorId, body.stageId as StageId);
+          return session;
+        }
+        break;
+
+      case '/end-session':
+        if (method === 'POST') {
+          await this.endSession(body.sessionId as SessionId);
+          return { success: true };
+        }
+        break;
+
+      case '/session':
+        if (method === 'GET') {
+          const url = new URL(`http://x${path}`);
+          const sessionId = url.searchParams.get('sessionId') as SessionId;
+          return { session: this.getSession(sessionId) };
+        }
+        break;
+
+      case '/active-sessions':
+        if (method === 'GET') {
+          return { sessions: this.getActiveSessions() };
+        }
+        break;
+
+      case '/audit-log':
+        if (method === 'GET') {
+          const url = new URL(`http://x${path}`);
+          const limit = parseInt(url.searchParams.get('limit') || '100');
+          return { auditLog: this.getAuditLog(limit) };
+        }
+        break;
+    }
+
+    return super.handleRequest(path, method, body);
+  }
+
   // ---------------------------------------------------------------------------
   // SETUP
   // ---------------------------------------------------------------------------
@@ -406,20 +621,22 @@ export class ServiceActor extends BaseActor<ServiceState> {
     cnes?: string;
     location: ServiceLocation;
   }): Promise<void> {
-    this.state.name = config.name;
-    this.state.serviceType = config.serviceType;
-    this.state.cnes = config.cnes;
-    this.state.location = config.location;
-    this.state.updatedAt = new Date();
+    this.actorState.name = config.name;
+    this.actorState.serviceType = config.serviceType;
+    this.actorState.cnes = config.cnes;
+    this.actorState.location = config.location;
+    this.actorState.updatedAt = new Date();
+    await this.persistState();
   }
 
   /**
    * Habilita um Stage neste Service
    */
   async enableStage(stageId: StageId): Promise<void> {
-    if (!this.state.enabledStages.includes(stageId)) {
-      this.state.enabledStages.push(stageId);
-      this.state.updatedAt = new Date();
+    if (!this.actorState.enabledStages.includes(stageId)) {
+      this.actorState.enabledStages.push(stageId);
+      this.actorState.updatedAt = new Date();
+      await this.persistState();
     }
   }
 
@@ -427,10 +644,11 @@ export class ServiceActor extends BaseActor<ServiceState> {
    * Desabilita um Stage
    */
   async disableStage(stageId: StageId): Promise<void> {
-    const index = this.state.enabledStages.indexOf(stageId);
+    const index = this.actorState.enabledStages.indexOf(stageId);
     if (index > -1) {
-      this.state.enabledStages.splice(index, 1);
-      this.state.updatedAt = new Date();
+      this.actorState.enabledStages.splice(index, 1);
+      this.actorState.updatedAt = new Date();
+      await this.persistState();
     }
   }
 
@@ -442,19 +660,21 @@ export class ServiceActor extends BaseActor<ServiceState> {
    * Vincula um Entity a este Service
    */
   async linkEntity(entityActorId: ActorId): Promise<void> {
-    if (!this.state.linkedEntities.includes(entityActorId)) {
-      this.state.linkedEntities.push(entityActorId);
-      this.state.updatedAt = new Date();
-      
+    if (!this.actorState.linkedEntities.includes(entityActorId)) {
+      this.actorState.linkedEntities.push(entityActorId);
+      this.actorState.updatedAt = new Date();
+
       await this.logAudit({
         actorId: entityActorId,
-        targetActorId: this.state.id,
+        targetActorId: this.actorState.id,
         action: 'entity_linked',
         scope: { dataTypes: [], actions: [], durationSeconds: 0, reason: 'link' },
-        serviceActorId: this.state.id,
+        serviceActorId: this.actorState.id,
         stageId: '' as StageId,
         metadata: {},
       });
+
+      await this.persistState();
     }
   }
 
@@ -462,10 +682,11 @@ export class ServiceActor extends BaseActor<ServiceState> {
    * Desvincula um Entity
    */
   async unlinkEntity(entityActorId: ActorId): Promise<void> {
-    const index = this.state.linkedEntities.indexOf(entityActorId);
+    const index = this.actorState.linkedEntities.indexOf(entityActorId);
     if (index > -1) {
-      this.state.linkedEntities.splice(index, 1);
-      this.state.updatedAt = new Date();
+      this.actorState.linkedEntities.splice(index, 1);
+      this.actorState.updatedAt = new Date();
+      await this.persistState();
     }
   }
 
@@ -473,7 +694,7 @@ export class ServiceActor extends BaseActor<ServiceState> {
    * Verifica se Entity está vinculado
    */
   isEntityLinked(entityActorId: ActorId): boolean {
-    return this.state.linkedEntities.includes(entityActorId);
+    return this.actorState.linkedEntities.includes(entityActorId);
   }
 
   // ---------------------------------------------------------------------------
@@ -483,40 +704,38 @@ export class ServiceActor extends BaseActor<ServiceState> {
   /**
    * Inicia uma sessão para um Entity
    */
-  async startSession(
-    entityActorId: ActorId,
-    stageId: StageId
-  ): Promise<ServiceSession> {
+  async startSession(entityActorId: ActorId, stageId: StageId): Promise<ServiceSession> {
     // Valida que Entity está vinculado
     if (!this.isEntityLinked(entityActorId)) {
       throw new Error('Entity not linked to this service');
     }
-    
+
     // Valida que Stage está habilitado
-    if (!this.state.enabledStages.includes(stageId)) {
+    if (!this.actorState.enabledStages.includes(stageId)) {
       throw new Error('Stage not enabled for this service');
     }
-    
+
     const session: ServiceSession = {
       id: crypto.randomUUID() as SessionId,
       entityActorId,
       stageId,
       startedAt: new Date(),
     };
-    
-    this.state.activeSessions.set(session.id, session);
-    this.state.updatedAt = new Date();
-    
+
+    this.actorState.activeSessions.set(session.id, session);
+    this.actorState.updatedAt = new Date();
+
     await this.logAudit({
       actorId: entityActorId,
-      targetActorId: this.state.id,
+      targetActorId: this.actorState.id,
       action: 'session_started',
       scope: { dataTypes: [], actions: [], durationSeconds: 0, reason: 'session' },
-      serviceActorId: this.state.id,
+      serviceActorId: this.actorState.id,
       stageId,
       metadata: { sessionId: session.id },
     });
-    
+
+    await this.persistState();
     return session;
   }
 
@@ -530,29 +749,30 @@ export class ServiceActor extends BaseActor<ServiceState> {
     scope: AccessScope,
     patientActorStub: any // Referência ao PatientActor DO
   ): Promise<AccessGrant> {
-    const session = this.state.activeSessions.get(sessionId);
+    const session = this.actorState.activeSessions.get(sessionId);
     if (!session) {
       throw new Error('Session not found');
     }
-    
+
     // Solicita acesso ao PatientActor
     const result = await patientActorStub.requestAccess(
       session.entityActorId,
-      this.state.id,
+      this.actorState.id,
       scope
     );
-    
+
     if (result.status === 'auto_approved') {
       // Acesso já foi concedido (emergência ou pré-autorizado)
       const grant = await patientActorStub.getGrant(result.requestId);
-      
+
       session.patientActorId = patientActorId;
       session.accessGrant = grant;
-      this.state.activeSessions.set(sessionId, session);
-      
+      this.actorState.activeSessions.set(sessionId, session);
+      await this.persistState();
+
       return grant;
     }
-    
+
     // Aguarda aprovação do paciente
     // Em produção, isso seria um webhook ou polling
     throw new Error('Patient approval required - not yet implemented');
@@ -562,40 +782,42 @@ export class ServiceActor extends BaseActor<ServiceState> {
    * Encerra uma sessão
    */
   async endSession(sessionId: SessionId): Promise<void> {
-    const session = this.state.activeSessions.get(sessionId);
+    const session = this.actorState.activeSessions.get(sessionId);
     if (!session) {
       return;
     }
-    
+
     // Se tinha acesso a paciente, notifica para revogar
     // (em produção, chamaria patientActor.revokeAccess)
-    
-    this.state.activeSessions.delete(sessionId);
-    this.state.updatedAt = new Date();
-    
+
+    this.actorState.activeSessions.delete(sessionId);
+    this.actorState.updatedAt = new Date();
+
     await this.logAudit({
       actorId: session.entityActorId,
-      targetActorId: this.state.id,
+      targetActorId: this.actorState.id,
       action: 'session_ended',
       scope: { dataTypes: [], actions: [], durationSeconds: 0, reason: 'session_end' },
-      serviceActorId: this.state.id,
+      serviceActorId: this.actorState.id,
       stageId: session.stageId,
       metadata: { sessionId },
     });
+
+    await this.persistState();
   }
 
   /**
    * Retorna sessão ativa
    */
   getSession(sessionId: SessionId): ServiceSession | undefined {
-    return this.state.activeSessions.get(sessionId);
+    return this.actorState.activeSessions.get(sessionId);
   }
 
   /**
    * Lista todas as sessões ativas
    */
   getActiveSessions(): ServiceSession[] {
-    return Array.from(this.state.activeSessions.values());
+    return Array.from(this.actorState.activeSessions.values());
   }
 
   // ---------------------------------------------------------------------------
@@ -606,19 +828,21 @@ export class ServiceActor extends BaseActor<ServiceState> {
    * Retorna log de auditoria do Service
    */
   getAuditLog(limit: number = 100): AuditEntry[] {
-    return this.state.auditLog.slice(-limit);
+    return this.actorState.auditLog.slice(-limit);
   }
 
   protected async logAudit(entry: Omit<AuditEntry, 'id' | 'timestamp'>): Promise<void> {
-    this.state.auditLog.push({
+    this.actorState.auditLog.push({
       ...entry,
       id: crypto.randomUUID(),
       timestamp: new Date(),
     });
-    
+
     // Mantém apenas últimos 10000 registros
-    if (this.state.auditLog.length > 10000) {
-      this.state.auditLog = this.state.auditLog.slice(-10000);
+    if (this.actorState.auditLog.length > 10000) {
+      this.actorState.auditLog = this.actorState.auditLog.slice(-10000);
     }
+
+    await this.persistState();
   }
 }

@@ -1,111 +1,82 @@
 /**
  * HealthOS Core - Exports
- * 
- * Este é o ponto de entrada principal do HealthOS Core.
- * Exporta todas as classes, tipos e utilitários.
+ *
+ * Este e o ponto de entrada principal do HealthOS.
+ * Re-exporta todos os modulos de packages/.
  */
 
 // =============================================================================
-// TYPES
+// CAST (Sistema Operacional)
 // =============================================================================
-
-export * from './types';
-
-// =============================================================================
-// ACTORS
-// =============================================================================
-
-export { 
-  PatientActor,
-  type PatientState,
-  type PatientPreferences,
-} from './actors/patient-actor';
 
 export {
+  Cast,
+  PatientActor,
+  BaseActor,
   EntityActor,
   ServiceActor,
-  type EntityState,
-  type EntityCredential,
-  type EntitySession,
-  type EntityPreferences,
-  type ServiceState,
-  type ServiceLocation,
-  type ServiceSession,
-  type ServiceConfig,
-} from './actors/entity-service-actors';
-
-export {
   BasePropActor,
-  ASLTool,
-  SISREGTool,
-  DocumentGeneratorTool,
   PropActors,
-  type ToolConfig,
-  type ASLAnalysisResult,
-  type LinguisticPattern,
-  type SentimentAnalysis,
-  type ClinicalMarker,
-} from './actors/tool-actor';
+  OnboardingManager,
+} from '@healthos/cast';
+
+export type {
+  CastRequest,
+  CastResponse,
+  OrchestratorDecision,
+  CastState,
+  CastMetrics,
+  OrchestratorConfig,
+  StageFactory as CastStageFactory,
+  IStage,
+  Env,
+  ActorState,
+  PropConfig,
+  OnboardingType,
+  OnboardingStatus,
+  OnboardingStep,
+  OnboardingSession,
+  PatientOnboardingData,
+  EntityOnboardingData,
+  ServiceOnboardingData,
+} from '@healthos/cast';
 
 // =============================================================================
-// PERSONA
-// =============================================================================
-
-export {
-  Persona,
-  Agent,
-  NeverPrescribeGuardrail,
-  RequireValidationGuardrail,
-  TimeoutGuardrail,
-  type AgentContext,
-  type AgentMessage,
-  type Guardrail,
-  type GuardrailResult,
-} from './persona/persona';
-
-// =============================================================================
-// SCRIPT
-// =============================================================================
-
-export {
-  Script,
-  ScriptBuilder,
-  StepBuilder,
-  ConsultationScript,
-  type ScriptContext,
-  type StepResult,
-  type ScriptResult,
-} from './script/script';
-
-// =============================================================================
-// STAGE
+// STAGE (Ambiente/App)
 // =============================================================================
 
 export {
   Stage,
   StageFactory,
-  type StageState,
-  type StageSession,
-} from './stage/stage';
+  DefaultTool,
+  Act,
+  ScriptBuilder,
+  StepBuilder,
+  Persona,
+} from '@healthos/stage';
+
+export type {
+  StageState,
+  StageSession,
+  StageMetrics,
+  ITool,
+  ToolDefinition,
+  ToolFactory,
+  ScriptResult,
+  ScriptContext,
+  StepResult,
+  AgentContext,
+} from '@healthos/stage';
 
 // =============================================================================
-// CAST
+// SHARED (Tipos e Schemas)
 // =============================================================================
 
-export {
-  Cast,
-  ORCHESTRATOR_SYSTEM_PROMPT,
-  type CastState,
-  type OrchestratorConfig,
-  type OrchestratorDecision,
-  type CastRequest,
-  type CastResponse,
-  type Env,
-} from './cast/cast';
+export * from '@healthos/shared';
 
 // =============================================================================
 // VERSION
 // =============================================================================
 
 export const VERSION = '1.0.0';
-export const NAME = 'HealthOS Core';
+export const NAME = 'HealthOS';

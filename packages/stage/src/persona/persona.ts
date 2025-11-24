@@ -1,17 +1,22 @@
 /**
- * Persona
- * 
+ * Persona - Agente Inteligente do HealthOS
+ *
  * Persona = Agent + Tools + Guardrails + Context
- * 
- * Persona NÃO é apenas um Agent. Persona é o "papel completo" que inclui:
- * - Agent: O LLM que raciocina e decide
- * - Tools: Os MCPs que o Agent pode usar
- * - Guardrails: Limitações e regras de segurança
- * - Context: Informações contextuais para o Agent
- * 
- * O Agent é o cérebro. A Persona é o papel completo.
+ *
+ * Implementado com Claude Agent SDK para:
+ * - Agentic loops completos
+ * - Tool use nativo
+ * - Extended thinking
+ * - Streaming
+ *
+ * A Persona NAO e apenas um Agent. E o "papel completo" que inclui:
+ * - Agent: O LLM que raciocina e decide (Claude)
+ * - Tools: MCPs que o Agent pode usar
+ * - Guardrails: Limitacoes e regras de seguranca
+ * - Context: Informacoes contextuais para o Agent
  */
 
+import Anthropic from '@anthropic-ai/sdk';
 import type {
   PersonaId,
   PersonaManifest,
@@ -22,42 +27,38 @@ import type {
   StageId,
   SessionId,
   ActorId,
-  LLMModel,
   Trigger,
-  PersonaResponse,
-  ActionResult,
   AccessGrant,
 } from '@healthos/shared';
 
-// Interface para Tools (implementação em @healthos/cast)
-interface BasePropActor {
+// =============================================================================
+// INTERFACES
+// =============================================================================
+
+/** Interface para Tools (MCPs) */
+export interface ITool {
+  getId(): ToolId;
+  getName(): string;
+  getCategory(): string;
   call(method: string, params: unknown): Promise<unknown>;
+  getToolDefinitions(): ToolDefinition[];
 }
 
-// =============================================================================
-// AGENT
-// =============================================================================
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
+}
 
+/** Contexto do Agent durante processamento */
 export interface AgentContext {
-  /** ID da sessão */
   sessionId: SessionId;
-  
-  /** ID do Stage */
   stageId: StageId;
-  
-  /** Actor que está usando (Entity ou Service) */
   actorId: ActorId;
-  
-  /** Paciente em contexto (se aplicável) */
   patientActorId?: ActorId;
-  
-  /** Grant de acesso (se aplicável) */
   accessGrant?: AccessGrant;
-  
-  /** Histórico de mensagens da sessão */
   messageHistory: AgentMessage[];
-  
-  /** Dados adicionais de contexto */
   data: Record<string, unknown>;
 }
 
@@ -83,33 +84,74 @@ export interface ToolResult {
   error?: string;
 }
 
-/**
- * Agent - O "cérebro" que raciocina
- * 
- * Agent é responsável por:
- * 1. Receber input (texto, contexto)
- * 2. Decidir quais tools usar
- * 3. Executar tools via MCP
- * 4. Formular resposta
- */
-export class Agent {
-  private config: AgentConfig;
-  private tools: Map<ToolId, BasePropActor>;
+/** Resposta da Persona */
+export interface PersonaResponse {
+  personaId: PersonaId;
+  sessionId: SessionId;
+  timestamp: Date;
+  thinking?: string;
+  actions: ActionResult[];
+  output: unknown;
+  tokensUsed: number;
+  durationMs: number;
+}
 
-  constructor(config: AgentConfig) {
+export interface ActionResult {
+  success: boolean;
+  action: string;
+  output?: unknown;
+  error?: string;
+  requiresValidation: boolean;
+  validatedBy?: ActorId;
+  validatedAt?: Date;
+}
+
+/** Env do Cloudflare Worker */
+export interface Env {
+  ANTHROPIC_API_KEY?: string;
+  AI_GATEWAY?: any;
+  [key: string]: unknown;
+}
+
+// =============================================================================
+// CLAUDE AGENT
+// =============================================================================
+
+/**
+ * ClaudeAgent - Agente baseado em Claude SDK
+ *
+ * Implementa agentic loop completo com:
+ * - Tool use nativo da API Anthropic
+ * - Extended thinking (opcional)
+ * - Streaming (opcional)
+ * - Retries automaticos
+ */
+export class ClaudeAgent {
+  private client: Anthropic;
+  private config: AgentConfig;
+  private tools: Map<ToolId, ITool>;
+  private env: Env;
+
+  constructor(config: AgentConfig, env: Env) {
     this.config = config;
+    this.env = env;
     this.tools = new Map();
+
+    // Inicializa cliente Anthropic
+    this.client = new Anthropic({
+      apiKey: env.ANTHROPIC_API_KEY || '',
+    });
   }
 
   /**
-   * Registra um Tool disponível para o Agent
+   * Registra um Tool disponivel para o Agent
    */
-  registerTool(toolId: ToolId, tool: BasePropActor): void {
+  registerTool(toolId: ToolId, tool: ITool): void {
     this.tools.set(toolId, tool);
   }
 
   /**
-   * Processa uma mensagem e retorna resposta
+   * Processa input com agentic loop completo
    */
   async process(
     input: string,
@@ -119,167 +161,161 @@ export class Agent {
     toolCalls: ToolCall[];
     toolResults: ToolResult[];
     thinking: string;
+    tokensUsed: number;
   }> {
-    // 1. Prepara mensagens para o LLM
-    const messages = this.buildMessages(input, context);
-    
-    // 2. Prepara definição de tools disponíveis
-    const toolDefinitions = this.buildToolDefinitions();
-    
-    // 3. Chama LLM (via AI Gateway em produção)
-    const llmResponse = await this.callLLM(messages, toolDefinitions);
-    
-    // 4. Processa tool calls se houver
     const toolCalls: ToolCall[] = [];
     const toolResults: ToolResult[] = [];
-    
-    if (llmResponse.toolCalls) {
-      for (const call of llmResponse.toolCalls) {
-        toolCalls.push(call);
-        
-        // Executa tool
-        const result = await this.executeTool(call);
-        toolResults.push(result);
-      }
-      
-      // Se teve tool calls, faz nova chamada ao LLM com resultados
-      if (toolResults.length > 0) {
-        const finalResponse = await this.callLLMWithToolResults(
-          messages,
-          toolCalls,
-          toolResults
-        );
-        
-        return {
-          response: finalResponse.content,
-          toolCalls,
-          toolResults,
-          thinking: llmResponse.thinking || '',
-        };
+    let totalTokens = 0;
+    let thinking = '';
+
+    // Prepara mensagens
+    const messages = this.buildMessages(input, context);
+
+    // Prepara tools para API Anthropic
+    const anthropicTools = this.buildAnthropicTools();
+
+    // Agentic loop - continua ate nao ter mais tool calls
+    let continueLoop = true;
+    let finalResponse = '';
+
+    while (continueLoop) {
+      try {
+        // Chama Claude
+        const response = await this.client.messages.create({
+          model: this.config.model || 'claude-sonnet-4-20250514',
+          max_tokens: this.config.maxTokens || 4096,
+          temperature: this.config.temperature || 0.7,
+          system: this.config.systemPrompt,
+          messages: messages as any,
+          tools: anthropicTools.length > 0 ? anthropicTools : undefined,
+        });
+
+        // Contabiliza tokens
+        totalTokens += (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
+
+        // Extrai thinking se disponivel (extended thinking)
+        if ((response as any).thinking) {
+          thinking = (response as any).thinking;
+        }
+
+        // Processa content blocks
+        let hasToolUse = false;
+
+        for (const block of response.content) {
+          if (block.type === 'text') {
+            finalResponse = block.text;
+          } else if (block.type === 'tool_use') {
+            hasToolUse = true;
+
+            // Parseia tool name (formato: toolId__methodName)
+            const [toolId, methodName] = block.name.split('__');
+
+            const call: ToolCall = {
+              id: block.id,
+              toolId: toolId as ToolId,
+              method: methodName,
+              params: block.input as Record<string, unknown>,
+            };
+            toolCalls.push(call);
+
+            // Executa tool
+            const result = await this.executeTool(call);
+            toolResults.push(result);
+
+            // Adiciona resultado as mensagens para proxima iteracao
+            messages.push({
+              role: 'assistant',
+              content: response.content,
+            } as any);
+
+            messages.push({
+              role: 'user',
+              content: [
+                {
+                  type: 'tool_result',
+                  tool_use_id: block.id,
+                  content: JSON.stringify(result.result || result.error),
+                  is_error: !result.success,
+                },
+              ],
+            } as any);
+          }
+        }
+
+        // Se nao teve tool use, termina loop
+        if (!hasToolUse) {
+          continueLoop = false;
+        }
+
+        // Se stop_reason e end_turn, termina
+        if (response.stop_reason === 'end_turn') {
+          continueLoop = false;
+        }
+
+        // Limite de iteracoes para evitar loop infinito
+        if (toolCalls.length > 20) {
+          continueLoop = false;
+        }
+      } catch (error) {
+        console.error('Claude API error:', error);
+        continueLoop = false;
+        finalResponse = `Erro ao processar: ${error instanceof Error ? error.message : 'Unknown error'}`;
       }
     }
-    
+
     return {
-      response: llmResponse.content,
+      response: finalResponse,
       toolCalls,
       toolResults,
-      thinking: llmResponse.thinking || '',
+      thinking,
+      tokensUsed: totalTokens,
     };
   }
 
   /**
-   * Constrói mensagens para o LLM
+   * Constroi mensagens para API Anthropic
    */
-  private buildMessages(input: string, context: AgentContext): AgentMessage[] {
-    const messages: AgentMessage[] = [];
-    
-    // System prompt
-    messages.push({
-      role: 'system',
-      content: this.config.systemPrompt,
-      timestamp: new Date(),
-    });
-    
-    // Histórico
-    messages.push(...context.messageHistory);
-    
-    // Input atual
+  private buildMessages(input: string, context: AgentContext): Anthropic.MessageParam[] {
+    const messages: Anthropic.MessageParam[] = [];
+
+    // Adiciona historico
+    for (const msg of context.messageHistory) {
+      if (msg.role === 'user' || msg.role === 'assistant') {
+        messages.push({
+          role: msg.role,
+          content: msg.content,
+        });
+      }
+    }
+
+    // Adiciona input atual
     messages.push({
       role: 'user',
       content: input,
-      timestamp: new Date(),
     });
-    
+
     return messages;
   }
 
   /**
-   * Constrói definições de tools para o LLM
+   * Constroi tools no formato Anthropic
    */
-  private buildToolDefinitions(): Array<{
-    name: string;
-    description: string;
-    inputSchema: unknown;
-  }> {
-    const definitions: Array<{
-      name: string;
-      description: string;
-      inputSchema: unknown;
-    }> = [];
-    
+  private buildAnthropicTools(): Anthropic.Tool[] {
+    const tools: Anthropic.Tool[] = [];
+
     for (const [toolId, tool] of this.tools) {
-      const toolDefs = tool.getToolDefinitions();
-      for (const def of toolDefs) {
-        definitions.push({
+      const definitions = tool.getToolDefinitions();
+
+      for (const def of definitions) {
+        tools.push({
           name: `${toolId}__${def.name}`,
           description: def.description,
-          inputSchema: def.inputSchema,
+          input_schema: def.inputSchema as Anthropic.Tool.InputSchema,
         });
       }
     }
-    
-    return definitions;
-  }
 
-  /**
-   * Chama o LLM
-   */
-  private async callLLM(
-    messages: AgentMessage[],
-    tools: Array<{ name: string; description: string; inputSchema: unknown }>
-  ): Promise<{
-    content: string;
-    toolCalls?: ToolCall[];
-    thinking?: string;
-  }> {
-    // Em produção, chamaria AI Gateway → Claude/GPT
-    // Placeholder para estrutura
-    
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
-        'anthropic-version': '2024-01-01',
-      },
-      body: JSON.stringify({
-        model: this.config.model,
-        max_tokens: this.config.maxTokens || 4096,
-        temperature: this.config.temperature,
-        system: this.config.systemPrompt,
-        messages: messages.map(m => ({
-          role: m.role === 'system' ? 'user' : m.role,
-          content: m.content,
-        })),
-        tools: tools.map(t => ({
-          name: t.name,
-          description: t.description,
-          input_schema: t.inputSchema,
-        })),
-      }),
-    });
-    
-    const data = await response.json() as any;
-    
-    // Processa resposta
-    const content = data.content?.[0]?.text || '';
-    const toolCalls = data.content
-      ?.filter((c: any) => c.type === 'tool_use')
-      ?.map((c: any) => {
-        const [toolId, method] = c.name.split('__');
-        return {
-          id: c.id,
-          toolId: toolId as ToolId,
-          method,
-          params: c.input,
-        };
-      });
-    
-    return {
-      content,
-      toolCalls,
-      thinking: data.thinking,
-    };
+    return tools;
   }
 
   /**
@@ -287,6 +323,7 @@ export class Agent {
    */
   private async executeTool(call: ToolCall): Promise<ToolResult> {
     const tool = this.tools.get(call.toolId);
+
     if (!tool) {
       return {
         callId: call.id,
@@ -294,22 +331,10 @@ export class Agent {
         error: `Tool not found: ${call.toolId}`,
       };
     }
-    
+
     try {
-      // Chama o método do tool
-      const methodName = `tool_${call.method}`;
-      const method = (tool as any)[methodName];
-      
-      if (typeof method !== 'function') {
-        return {
-          callId: call.id,
-          success: false,
-          error: `Method not found: ${call.method}`,
-        };
-      }
-      
-      const result = await method.call(tool, call.params);
-      
+      const result = await tool.call(call.method, call.params);
+
       return {
         callId: call.id,
         success: true,
@@ -323,31 +348,6 @@ export class Agent {
       };
     }
   }
-
-  /**
-   * Chama LLM novamente com resultados dos tools
-   */
-  private async callLLMWithToolResults(
-    messages: AgentMessage[],
-    toolCalls: ToolCall[],
-    toolResults: ToolResult[]
-  ): Promise<{ content: string }> {
-    // Adiciona tool results às mensagens
-    const updatedMessages = [...messages];
-    
-    for (const result of toolResults) {
-      updatedMessages.push({
-        role: 'tool',
-        content: JSON.stringify(result.result || result.error),
-        timestamp: new Date(),
-      });
-    }
-    
-    // Chama LLM sem tools (para resposta final)
-    const response = await this.callLLM(updatedMessages, []);
-    
-    return { content: response.content };
-  }
 }
 
 // =============================================================================
@@ -355,16 +355,12 @@ export class Agent {
 // =============================================================================
 
 /**
- * Guardrail - Limitação ou regra de segurança
+ * Guardrail - Limitacao ou regra de seguranca
  */
 export interface Guardrail {
   id: string;
   type: GuardrailType;
-  
-  /** Verifica se uma ação é permitida */
   check(action: string, context: AgentContext): Promise<GuardrailResult>;
-  
-  /** Aplica transformação se necessário */
   transform?(input: string, context: AgentContext): Promise<string>;
 }
 
@@ -380,86 +376,150 @@ export interface GuardrailResult {
 export class NeverPrescribeGuardrail implements Guardrail {
   id = 'never_prescribe';
   type: GuardrailType = 'never_prescribe';
-  
+
   async check(action: string, context: AgentContext): Promise<GuardrailResult> {
-    const prescriptionKeywords = [
-      'prescrever', 'prescrição', 'receita', 'medicamento',
-      'prescribe', 'prescription', 'medication'
+    const keywords = [
+      'prescrever',
+      'prescricao',
+      'receita',
+      'medicamento',
+      'prescribe',
+      'prescription',
+      'medication',
+      'drug',
     ];
-    
-    const lowerAction = action.toLowerCase();
-    
-    for (const keyword of prescriptionKeywords) {
-      if (lowerAction.includes(keyword)) {
+
+    const lower = action.toLowerCase();
+
+    for (const kw of keywords) {
+      if (lower.includes(kw)) {
         return {
           allowed: false,
-          reason: 'Esta persona não pode prescrever medicamentos',
+          reason: 'Esta persona nao pode prescrever medicamentos',
           suggestion: 'Encaminhe para um profissional habilitado',
         };
       }
     }
-    
+
     return { allowed: true };
   }
 }
 
 /**
- * Guardrail: Requer validação humana
+ * Guardrail: Requer validacao humana
  */
 export class RequireValidationGuardrail implements Guardrail {
   id = 'require_validation';
   type: GuardrailType = 'require_validation';
-  
-  private actionsRequiringValidation: string[];
-  
+  private actions: string[];
+
   constructor(actions: string[]) {
-    this.actionsRequiringValidation = actions;
+    this.actions = actions;
   }
-  
+
   async check(action: string, context: AgentContext): Promise<GuardrailResult> {
-    const lowerAction = action.toLowerCase();
-    
-    for (const requiredAction of this.actionsRequiringValidation) {
-      if (lowerAction.includes(requiredAction.toLowerCase())) {
+    const lower = action.toLowerCase();
+
+    for (const act of this.actions) {
+      if (lower.includes(act.toLowerCase())) {
         return {
           allowed: true,
-          reason: 'Ação permitida mas requer validação humana',
-          suggestion: 'Apresente para validação do profissional',
+          reason: 'Acao permitida mas requer validacao humana',
         };
       }
     }
-    
+
     return { allowed: true };
   }
 }
 
 /**
- * Guardrail: Timeout máximo
+ * Guardrail: Timeout maximo
  */
 export class TimeoutGuardrail implements Guardrail {
   id = 'timeout';
   type: GuardrailType = 'timeout';
-  
-  private maxDurationMs: number;
-  
-  constructor(maxDurationMs: number) {
-    this.maxDurationMs = maxDurationMs;
+  private maxMs: number;
+
+  constructor(maxMs: number) {
+    this.maxMs = maxMs;
   }
-  
+
   async check(action: string, context: AgentContext): Promise<GuardrailResult> {
-    // Verifica se sessão não excedeu timeout
-    const sessionStart = context.messageHistory[0]?.timestamp;
-    if (sessionStart) {
-      const elapsed = Date.now() - sessionStart.getTime();
-      if (elapsed > this.maxDurationMs) {
+    const start = context.messageHistory[0]?.timestamp;
+    if (start) {
+      const elapsed = Date.now() - start.getTime();
+      if (elapsed > this.maxMs) {
         return {
           allowed: false,
-          reason: 'Sessão excedeu tempo máximo',
-          suggestion: 'Inicie uma nova sessão',
+          reason: 'Sessao excedeu tempo maximo',
+          suggestion: 'Inicie uma nova sessao',
         };
       }
     }
-    
+    return { allowed: true };
+  }
+}
+
+/**
+ * Guardrail: Rate limit
+ */
+export class RateLimitGuardrail implements Guardrail {
+  id = 'rate_limit';
+  type: GuardrailType = 'rate_limit';
+  private maxRequests: number;
+  private windowMs: number;
+  private requests: Date[] = [];
+
+  constructor(maxRequests: number, windowMs: number = 60000) {
+    this.maxRequests = maxRequests;
+    this.windowMs = windowMs;
+  }
+
+  async check(action: string, context: AgentContext): Promise<GuardrailResult> {
+    const now = Date.now();
+
+    // Remove requests antigos
+    this.requests = this.requests.filter((r) => now - r.getTime() < this.windowMs);
+
+    if (this.requests.length >= this.maxRequests) {
+      return {
+        allowed: false,
+        reason: 'Limite de requisicoes excedido',
+        suggestion: 'Aguarde alguns segundos',
+      };
+    }
+
+    this.requests.push(new Date());
+    return { allowed: true };
+  }
+}
+
+/**
+ * Guardrail: Escopo de dados
+ */
+export class ScopeLimitGuardrail implements Guardrail {
+  id = 'scope_limit';
+  type: GuardrailType = 'scope_limit';
+  private allowedDataTypes: string[];
+
+  constructor(dataTypes: string[]) {
+    this.allowedDataTypes = dataTypes;
+  }
+
+  async check(action: string, context: AgentContext): Promise<GuardrailResult> {
+    // Verifica se accessGrant permite os tipos de dados
+    if (context.accessGrant) {
+      const grantTypes = context.accessGrant.scope.dataTypes;
+      for (const allowed of this.allowedDataTypes) {
+        if (!grantTypes.includes(allowed as any) && !grantTypes.includes('all' as any)) {
+          return {
+            allowed: false,
+            reason: `Acesso a ${allowed} nao autorizado`,
+          };
+        }
+      }
+    }
     return { allowed: true };
   }
 }
@@ -470,28 +530,29 @@ export class TimeoutGuardrail implements Guardrail {
 
 /**
  * Persona - Agent + Tools + Guardrails + Context
- * 
- * Persona é o "papel completo" que um Actor assume em um Stage.
+ *
+ * Persona e o "papel completo" que um Actor assume em um Stage.
+ * Combina o poder do Claude Agent SDK com guardrails de seguranca.
  */
 export class Persona {
   readonly id: PersonaId;
   readonly name: string;
   readonly description: string;
   readonly trigger: Trigger;
-  
-  private agent: Agent;
+
+  private agent: ClaudeAgent;
   private guardrails: Guardrail[];
   private context: Record<string, unknown>;
-  
-  constructor(manifest: PersonaManifest, tools: Map<ToolId, BasePropActor>) {
+
+  constructor(manifest: PersonaManifest, tools: Map<ToolId, ITool>, env: Env) {
     this.id = manifest.id;
     this.name = manifest.name;
     this.description = manifest.description;
     this.trigger = manifest.trigger;
-    
-    // Cria Agent com config do manifest
-    this.agent = new Agent(manifest.agent);
-    
+
+    // Cria ClaudeAgent com config do manifest
+    this.agent = new ClaudeAgent(manifest.agent, env);
+
     // Registra tools no Agent
     for (const toolId of manifest.tools) {
       const tool = tools.get(toolId);
@@ -499,38 +560,36 @@ export class Persona {
         this.agent.registerTool(toolId, tool);
       }
     }
-    
+
     // Cria guardrails
     this.guardrails = this.createGuardrails(manifest.guardrails);
-    
+
     // Contexto inicial
     this.context = manifest.agent.context || {};
   }
 
   /**
-   * Processa input através da Persona
+   * Processa input atraves da Persona
    */
-  async process(
-    input: string,
-    agentContext: AgentContext
-  ): Promise<PersonaResponse> {
+  async process(input: string, context: AgentContext): Promise<PersonaResponse> {
     const startTime = Date.now();
-    
-    // 1. Verifica guardrails antes de processar
+
+    // 1. Verifica guardrails PRE-processamento
     for (const guardrail of this.guardrails) {
-      const result = await guardrail.check(input, agentContext);
+      const result = await guardrail.check(input, context);
       if (!result.allowed) {
         return {
           personaId: this.id,
-          sessionId: agentContext.sessionId,
+          sessionId: context.sessionId,
           timestamp: new Date(),
-          thinking: '',
-          actions: [{
-            success: false,
-            action: 'guardrail_blocked',
-            error: result.reason,
-            requiresValidation: false,
-          }],
+          actions: [
+            {
+              success: false,
+              action: 'guardrail_blocked',
+              error: result.reason,
+              requiresValidation: false,
+            },
+          ],
           output: {
             blocked: true,
             reason: result.reason,
@@ -540,28 +599,28 @@ export class Persona {
           durationMs: Date.now() - startTime,
         };
       }
-      
-      // Aplica transformação se houver
+
+      // Aplica transformacao se houver
       if (guardrail.transform) {
-        input = await guardrail.transform(input, agentContext);
+        input = await guardrail.transform(input, context);
       }
     }
-    
-    // 2. Processa com Agent
-    const agentResponse = await this.agent.process(input, agentContext);
-    
+
+    // 2. Processa com ClaudeAgent (agentic loop)
+    const agentResponse = await this.agent.process(input, context);
+
     // 3. Converte tool results em actions
-    const actions: ActionResult[] = agentResponse.toolResults.map(result => ({
+    const actions: ActionResult[] = agentResponse.toolResults.map((result) => ({
       success: result.success,
-      action: agentResponse.toolCalls.find(c => c.id === result.callId)?.method || 'unknown',
+      action: agentResponse.toolCalls.find((c) => c.id === result.callId)?.method || 'unknown',
       output: result.result,
       error: result.error,
       requiresValidation: this.requiresValidation(result),
     }));
-    
-    // 4. Verifica guardrails pós-processamento
+
+    // 4. Verifica guardrails POS-processamento
     for (const guardrail of this.guardrails) {
-      const result = await guardrail.check(agentResponse.response, agentContext);
+      const result = await guardrail.check(agentResponse.response, context);
       if (!result.allowed) {
         actions.push({
           success: false,
@@ -571,15 +630,15 @@ export class Persona {
         });
       }
     }
-    
+
     return {
       personaId: this.id,
-      sessionId: agentContext.sessionId,
+      sessionId: context.sessionId,
       timestamp: new Date(),
       thinking: agentResponse.thinking,
       actions,
       output: agentResponse.response,
-      tokensUsed: 0, // Calculado pelo AI Gateway em produção
+      tokensUsed: agentResponse.tokensUsed,
       durationMs: Date.now() - startTime,
     };
   }
@@ -587,7 +646,7 @@ export class Persona {
   /**
    * Verifica se trigger deve ativar esta Persona
    */
-  shouldActivate(event: string, context: Record<string, unknown>): boolean {
+  shouldActivate(event: string, payload: Record<string, unknown>): boolean {
     switch (this.trigger.type) {
       case 'auto':
         return true;
@@ -596,58 +655,71 @@ export class Persona {
       case 'event':
         return this.trigger.event === event;
       case 'condition':
-        return this.evaluateCondition(this.trigger.condition || '', context);
+        return this.evaluateCondition(this.trigger.condition || '', payload);
       default:
         return false;
     }
   }
 
   /**
-   * Cria instâncias de guardrails a partir de config
+   * Cria guardrails a partir de config
    */
   private createGuardrails(configs: GuardrailConfig[]): Guardrail[] {
-    return configs.map(config => {
-      switch (config.type) {
-        case 'never_prescribe':
-          return new NeverPrescribeGuardrail();
-        case 'require_validation':
-          return new RequireValidationGuardrail(
-            (config.config.actions as string[]) || []
-          );
-        case 'timeout':
-          return new TimeoutGuardrail(
-            (config.config.maxDurationMs as number) || 3600000
-          );
-        default:
-          // Custom guardrail - seria carregado dinamicamente
-          return {
-            id: config.id,
-            type: config.type,
-            check: async () => ({ allowed: true }),
-          } as Guardrail;
-      }
-    });
+    return configs
+      .filter((c) => c.enabled !== false)
+      .map((config) => {
+        switch (config.type) {
+          case 'never_prescribe':
+            return new NeverPrescribeGuardrail();
+
+          case 'require_validation':
+            return new RequireValidationGuardrail(
+              (config.config?.actions as string[]) || []
+            );
+
+          case 'timeout':
+            return new TimeoutGuardrail(
+              ((config.config?.seconds as number) || 3600) * 1000
+            );
+
+          case 'rate_limit':
+            return new RateLimitGuardrail(
+              (config.config?.requestsPerMinute as number) || 60
+            );
+
+          case 'scope_limit':
+            return new ScopeLimitGuardrail(
+              (config.config?.dataTypes as string[]) || []
+            );
+
+          default:
+            // Custom guardrail - retorna passthrough
+            return {
+              id: config.id,
+              type: config.type,
+              check: async () => ({ allowed: true }),
+            } as Guardrail;
+        }
+      });
   }
 
   /**
-   * Verifica se resultado requer validação
+   * Verifica se resultado requer validacao
    */
   private requiresValidation(result: ToolResult): boolean {
-    // Verifica se o resultado tem flag de requiresSignature ou similar
     if (result.result && typeof result.result === 'object') {
-      return (result.result as any).requiresSignature === true ||
-             (result.result as any).requiresValidation === true;
+      const r = result.result as Record<string, unknown>;
+      return r.requiresSignature === true || r.requiresValidation === true;
     }
     return false;
   }
 
   /**
-   * Avalia condição para trigger
+   * Avalia condicao para trigger
    */
   private evaluateCondition(condition: string, context: Record<string, unknown>): boolean {
-    // Implementação simplificada - em produção usaria um parser
     try {
-      const fn = new Function('context', `return ${condition}`);
+      const fn = new Function('ctx', `with(ctx) { return ${condition}; }`);
       return fn(context);
     } catch {
       return false;
@@ -660,12 +732,16 @@ export class Persona {
 // =============================================================================
 
 export {
-  Agent,
-  AgentContext,
-  AgentMessage,
+  ClaudeAgent,
+  Persona,
   Guardrail,
   GuardrailResult,
   NeverPrescribeGuardrail,
   RequireValidationGuardrail,
   TimeoutGuardrail,
+  RateLimitGuardrail,
+  ScopeLimitGuardrail,
 };
+
+// Alias para compatibilidade
+export { ClaudeAgent as Agent };

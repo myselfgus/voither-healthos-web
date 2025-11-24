@@ -1286,4 +1286,10 @@ export default {
 // EXPORTS
 // =============================================================================
 
+// Cast Manager
 export { Cast, ORCHESTRATOR_SYSTEM_PROMPT };
+
+// Re-export Durable Object classes for wrangler
+export { PatientActor } from './actors/patient';
+export { EntityActor, ServiceActor } from './actors/entity-service';
+export { BasePropActor, PropActors } from './actors/prop';
