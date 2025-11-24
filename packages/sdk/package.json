@@ -1,0 +1,19 @@
+{
+  "name": "@healthos/sdk",
+  "version": "0.1.0",
+  "description": "HealthOS SDK - SDK para desenvolvedores de Stages",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@healthos/cast": "workspace:*",
+    "@healthos/stage": "workspace:*",
+    "@healthos/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "healthos-cast",
+  "main": "src/cast/cast.ts",
+  "compatibility_date": "2024-12-01",
+  "compatibility_flags": ["nodejs_compat"],
+  
+  // Workers for Platforms - namespace principal
+  "dispatch_namespace": "healthos",
+  
+  // Durable Objects - Actors universais
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "PATIENT_ACTORS",
+        "class_name": "PatientActor"
+      },
+      {
+        "name": "ENTITY_ACTORS", 
+        "class_name": "EntityActor"
+      },
+      {
+        "name": "SERVICE_ACTORS",
+        "class_name": "ServiceActor"
+      }
+    ]
+  },
+  
+  // Migrations para Durable Objects
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_classes": ["PatientActor", "EntityActor", "ServiceActor"]
+    }
+  ],
+  
+  // KV Namespaces para cache e config
+  "kv_namespaces": [
+    {
+      "binding": "STAGE_CONFIGS",
+      "id": "stage-configs-namespace-id"
+    },
+    {
+      "binding": "SHARED_TOOLS",
+      "id": "shared-tools-namespace-id"
+    }
+  ],
+  
+  // R2 para armazenamento de arquivos (documentos, áudios)
+  "r2_buckets": [
+    {
+      "binding": "DOCUMENTS",
+      "bucket_name": "healthos-documents"
+    },
+    {
+      "binding": "AUDIO_FILES",
+      "bucket_name": "healthos-audio"
+    }
+  ],
+  
+  // AI Gateway para LLMs
+  "ai": {
+    "binding": "AI"
+  },
+  
+  // Secrets (configurar via wrangler secret)
+  // - ANTHROPIC_API_KEY
+  // - OPENAI_API_KEY
+  // - ENCRYPTION_KEY
+  
+  // Variáveis de ambiente
+  "vars": {
+    "ENVIRONMENT": "production",
+    "LOG_LEVEL": "info"
+  },
+  
+  // Queues para processamento assíncrono
+  "queues": {
+    "producers": [
+      {
+        "queue": "healthos-events",
+        "binding": "EVENTS_QUEUE"
+      },
+      {
+        "queue": "healthos-notifications",
+        "binding": "NOTIFICATIONS_QUEUE"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "healthos-events",
+        "max_batch_size": 10,
+        "max_retries": 3
+      }
+    ]
+  },
+  
+  // Observability
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  
+  // Limites
+  "limits": {
+    "cpu_ms": 30000
+  }
+}
