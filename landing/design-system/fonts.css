@@ -1,0 +1,237 @@
+/**
+ * ============================================
+ * FONT SYSTEM
+ * ============================================
+ * Google Fonts imports with optimized loading
+ * AI-EDITABLE: Change font families here
+ */
+
+/* ========================================
+ * GOOGLE FONTS IMPORTS
+ * Preconnect for faster loading
+ * ======================================== */
+
+/* Josefin Sans - Display/Titles */
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;500;600;700&display=swap');
+
+/* Space Grotesk - Body text */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+/* Nunito - UI elements */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&display=swap');
+
+/* Roboto Mono - Code/Technical */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap');
+
+/* ========================================
+ * FONT FACE FALLBACKS (Local)
+ * Uncomment if self-hosting fonts
+ * ======================================== */
+
+/*
+@font-face {
+  font-family: 'Josefin Sans';
+  src: url('/fonts/JosefinSans-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+*/
+
+/* ========================================
+ * TYPOGRAPHY UTILITIES
+ * ======================================== */
+
+/* Display - For hero headlines */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-tight);
+}
+
+/* Body - For paragraphs and content */
+.font-body {
+  font-family: var(--font-body);
+  font-weight: var(--font-normal);
+  letter-spacing: var(--tracking-normal);
+}
+
+/* UI - For buttons, labels, navigation */
+.font-ui {
+  font-family: var(--font-ui);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-normal);
+}
+
+/* Mono - For code, numbers, technical */
+.font-mono {
+  font-family: var(--font-mono);
+  font-weight: var(--font-normal);
+  letter-spacing: var(--tracking-normal);
+}
+
+/* ========================================
+ * HEADING STYLES
+ * ======================================== */
+
+.heading-hero {
+  font-family: var(--font-display);
+  font-size: clamp(var(--text-4xl), 8vw, var(--text-7xl));
+  font-weight: var(--font-bold);
+  line-height: var(--leading-none);
+  letter-spacing: var(--tracking-tighter);
+  color: var(--color-text-primary);
+}
+
+.heading-section {
+  font-family: var(--font-display);
+  font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-primary);
+}
+
+.heading-card {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-primary);
+}
+
+.heading-small {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-snug);
+  color: var(--color-text-primary);
+}
+
+/* ========================================
+ * TEXT STYLES
+ * ======================================== */
+
+.text-lead {
+  font-family: var(--font-body);
+  font-size: var(--text-xl);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-secondary);
+}
+
+.text-body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+  color: var(--color-text-primary);
+}
+
+.text-small {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+  color: var(--color-text-secondary);
+}
+
+.text-caption {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  line-height: var(--leading-normal);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+.text-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+}
+
+/* ========================================
+ * SPECIAL TEXT EFFECTS
+ * ======================================== */
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--color-prisma) 0%,
+    var(--color-prisma-dark) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Glow effect for headings */
+.text-glow {
+  text-shadow:
+    0 0 20px oklch(0.70 0.12 260 / 0.3),
+    0 0 40px oklch(0.70 0.12 260 / 0.2);
+}
+
+/* Subtle shadow for readability */
+.text-shadow {
+  text-shadow: 0 2px 4px oklch(0 0 0 / 0.1);
+}
+
+/* Balance text wrapping */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Pretty text wrapping */
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* ========================================
+ * RESPONSIVE TYPOGRAPHY
+ * ======================================== */
+
+@media (max-width: 768px) {
+  .heading-hero {
+    font-size: clamp(var(--text-3xl), 10vw, var(--text-5xl));
+  }
+
+  .heading-section {
+    font-size: clamp(var(--text-2xl), 6vw, var(--text-4xl));
+  }
+
+  .text-lead {
+    font-size: var(--text-lg);
+  }
+}
+
+/* ========================================
+ * LINK STYLES
+ * ======================================== */
+
+.link {
+  color: var(--color-prisma);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.link:hover {
+  color: var(--color-prisma-dark);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.link-subtle {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.link-subtle:hover {
+  color: var(--color-text-primary);
+}

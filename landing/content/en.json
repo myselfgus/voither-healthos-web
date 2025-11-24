@@ -1,0 +1,191 @@
+{
+  "_meta": {
+    "language": "en-US",
+    "name": "English (US)",
+    "description": "AI-EDITABLE: This file contains all landing page content in English. Edit values to update displayed text.",
+    "lastUpdated": "2024-12-01"
+  },
+
+  "nav": {
+    "logo": "HealthOS",
+    "links": [
+      { "label": "Product", "href": "#product" },
+      { "label": "How It Works", "href": "#how-it-works" },
+      { "label": "Security", "href": "#security" },
+      { "label": "Ecosystem", "href": "#ecosystem" }
+    ],
+    "cta": "Early Access",
+    "languageToggle": "PT"
+  },
+
+  "hero": {
+    "badge": "Cognitive Operating System",
+    "headline": {
+      "line1": "Medicine became",
+      "highlight": "bureaucracy",
+      "highlightAlt": "invisible",
+      "line2": "We made it"
+    },
+    "description": "The first Cognitive Operating System that gives back the doctor's time and patient sovereignty. No forms. No clicks. Just conversation.",
+    "cta": {
+      "primary": "Discover HealthOS",
+      "secondary": "Watch Demo"
+    },
+    "stats": [
+      { "value": "80%", "label": "Less time on documentation" },
+      { "value": "100%", "label": "Data under patient control" },
+      { "value": "0", "label": "Forms to fill out" }
+    ]
+  },
+
+  "features": {
+    "badge": "MedScribe",
+    "headline": "Talk. The rest is automatic.",
+    "description": "MedScribe isn't dictation. It's a cognitive copilot that understands context, generates documentation, and learns from every interaction.",
+    "items": [
+      {
+        "title": "Audio to SOAP",
+        "description": "From audio to instant SOAP Note. Structured, complete, reviewable.",
+        "icon": "waveform"
+      },
+      {
+        "title": "Auto Documents",
+        "description": "Automatic generation of prescriptions and certificates. Ready for digital signature.",
+        "icon": "document"
+      },
+      {
+        "title": "Invisible by Design",
+        "description": "You care, we write. Documentation happens without you noticing.",
+        "icon": "eye-off"
+      }
+    ],
+    "demo": {
+      "label": "Real-time visualization",
+      "before": "Chaos of unstructured data",
+      "after": "Order: Structured SOAP note"
+    }
+  },
+
+  "intelligence": {
+    "badge": "ASL - Audio Signal Layer",
+    "headline": "Beyond Transcription: Clinical Intelligence.",
+    "description": "We hear what wasn't said. ASL analyzes speech patterns, tone, and pauses to extract clinical insights invisible to the human eye.",
+    "markers": [
+      {
+        "name": "Response Latency",
+        "description": "Cognitive processing time indicating mental state",
+        "confidence": 89
+      },
+      {
+        "name": "Affective Marker",
+        "description": "Detection of emotional states through vocal patterns",
+        "confidence": 92
+      },
+      {
+        "name": "Semantic Disruption",
+        "description": "Identification of breaks in logical thought flow",
+        "confidence": 78
+      },
+      {
+        "name": "Prosodic Tone",
+        "description": "Analysis of intonation and rhythm for emotional context",
+        "confidence": 85
+      }
+    ],
+    "disclaimer": "Auxiliary clinical markers. Do not replace professional diagnosis."
+  },
+
+  "architecture": {
+    "badge": "Sovereignty by Design",
+    "headline": "Your data. Your control. Always.",
+    "description": "Each patient is an isolated universe. No external entity accesses your data without your explicit permission.",
+    "features": [
+      {
+        "title": "Total Isolation",
+        "description": "Each PatientActor lives in its own Durable Object. Mathematical isolation, not just logical.",
+        "icon": "shield"
+      },
+      {
+        "title": "Doctor as Guest",
+        "description": "Professionals receive temporary permissions. The patient revokes whenever they want.",
+        "icon": "user-check"
+      },
+      {
+        "title": "Zero Mass Leaks",
+        "description": "There's no central database to hack. Each Actor is a fortress.",
+        "icon": "lock"
+      }
+    ],
+    "grid": {
+      "title": "Capsule Architecture",
+      "description": "Each capsule represents an isolated PatientActor. Hover to see the state."
+    }
+  },
+
+  "ecosystem": {
+    "badge": "Ecosystem",
+    "headline": "An Ecosystem. Not an App.",
+    "description": "HealthOS orchestrates ServiceActors and EntityActors in a complete cognitive system. Each module talks to the others.",
+    "products": [
+      {
+        "name": "MedScribe",
+        "description": "Voice clinical documentation. SOAP, prescriptions, certificates.",
+        "status": "live",
+        "statusLabel": "Available",
+        "icon": "waveform"
+      },
+      {
+        "name": "Regulation",
+        "description": "Automation of regulatory flows and referrals.",
+        "status": "beta",
+        "statusLabel": "Beta",
+        "icon": "document"
+      },
+      {
+        "name": "Schedule",
+        "description": "Intelligent scheduling with conversational AI.",
+        "status": "development",
+        "statusLabel": "Development",
+        "icon": "calendar"
+      },
+      {
+        "name": "Telemedicine",
+        "description": "Remote consultations with automatic documentation.",
+        "status": "planned",
+        "statusLabel": "Planned",
+        "icon": "video"
+      }
+    ],
+    "tam": {
+      "value": "$127B",
+      "label": "Healthcare IT in Brazil by 2030"
+    }
+  },
+
+  "cta": {
+    "headline": "Ready for medicine without bureaucracy?",
+    "description": "Join the professionals who are redefining healthcare.",
+    "button": "Request Early Access",
+    "note": "No commitment. No credit card."
+  },
+
+  "footer": {
+    "tagline": "The first Cognitive Operating System for Healthcare",
+    "copyright": "2024 Voither",
+    "links": [
+      { "label": "Privacy", "href": "/privacy" },
+      { "label": "Terms", "href": "/terms" },
+      { "label": "Contact", "href": "/contact" }
+    ],
+    "values": [
+      "Invisible Technology",
+      "Patient Sovereignty",
+      "Made in Brazil"
+    ],
+    "social": [
+      { "platform": "linkedin", "href": "https://linkedin.com/company/voither" },
+      { "platform": "twitter", "href": "https://twitter.com/voither" },
+      { "platform": "github", "href": "https://github.com/voither" }
+    ]
+  }
+}

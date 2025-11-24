@@ -1,0 +1,191 @@
+{
+  "_meta": {
+    "language": "pt-BR",
+    "name": "Portugues (Brasil)",
+    "description": "AI-EDITABLE: Este arquivo contem todo o conteudo da landing page em portugues. Edite os valores para atualizar o texto exibido.",
+    "lastUpdated": "2024-12-01"
+  },
+
+  "nav": {
+    "logo": "HealthOS",
+    "links": [
+      { "label": "Produto", "href": "#produto" },
+      { "label": "Como Funciona", "href": "#como-funciona" },
+      { "label": "Seguranca", "href": "#seguranca" },
+      { "label": "Ecossistema", "href": "#ecossistema" }
+    ],
+    "cta": "Acesso Antecipado",
+    "languageToggle": "EN"
+  },
+
+  "hero": {
+    "badge": "Sistema Operacional Cognitivo",
+    "headline": {
+      "line1": "A medicina virou",
+      "highlight": "burocracia",
+      "highlightAlt": "invisivel",
+      "line2": "Nos a tornamos"
+    },
+    "description": "O primeiro Sistema Operacional Cognitivo que devolve o tempo do medico e a soberania do paciente. Sem formularios. Sem cliques. Apenas conversa.",
+    "cta": {
+      "primary": "Descubra o HealthOS",
+      "secondary": "Ver Demo"
+    },
+    "stats": [
+      { "value": "80%", "label": "Menos tempo em documentacao" },
+      { "value": "100%", "label": "Dados sob controle do paciente" },
+      { "value": "0", "label": "Formularios para preencher" }
+    ]
+  },
+
+  "features": {
+    "badge": "MedScribe",
+    "headline": "Converse. O resto e automatico.",
+    "description": "O MedScribe nao e um ditado. E um copiloto cognitivo que entende contexto, gera documentacao e aprende com cada interacao.",
+    "items": [
+      {
+        "title": "Audio para SOAP",
+        "description": "De audio para Nota SOAP instantanea. Estruturado, completo, revisavel.",
+        "icon": "waveform"
+      },
+      {
+        "title": "Documentos Automaticos",
+        "description": "Geracao automatica de prescricoes e atestados. Pronto para assinatura digital.",
+        "icon": "document"
+      },
+      {
+        "title": "Invisivel por Design",
+        "description": "Voce cuida, nos escrevemos. A documentacao acontece sem voce perceber.",
+        "icon": "eye-off"
+      }
+    ],
+    "demo": {
+      "label": "Visualizacao em tempo real",
+      "before": "Caos de dados nao estruturados",
+      "after": "Ordem: Nota SOAP estruturada"
+    }
+  },
+
+  "intelligence": {
+    "badge": "ASL - Audio Signal Layer",
+    "headline": "Alem da Transcricao: Inteligencia Clinica.",
+    "description": "Ouvimos o que nao foi dito. O ASL analisa padroes de fala, tom e pausas para extrair insights clinicos invisiveis ao olho humano.",
+    "markers": [
+      {
+        "name": "Latencia de Resposta",
+        "description": "Tempo de processamento cognitivo indicando estado mental",
+        "confidence": 89
+      },
+      {
+        "name": "Marcador Afetivo",
+        "description": "Deteccao de estados emocionais atraves de padroes vocais",
+        "confidence": 92
+      },
+      {
+        "name": "Disrupcao Semantica",
+        "description": "Identificacao de quebras no fluxo logico do pensamento",
+        "confidence": 78
+      },
+      {
+        "name": "Tom Prosodico",
+        "description": "Analise de entonacao e ritmo para contexto emocional",
+        "confidence": 85
+      }
+    ],
+    "disclaimer": "Marcadores clinicos auxiliares. Nao substituem diagnostico profissional."
+  },
+
+  "architecture": {
+    "badge": "Soberania por Design",
+    "headline": "Seus dados. Seu controle. Sempre.",
+    "description": "Cada paciente e um universo isolado. Nenhuma entidade externa acessa seus dados sem sua permissao explicita.",
+    "features": [
+      {
+        "title": "Isolamento Total",
+        "description": "Cada PatientActor vive em seu proprio Durable Object. Isolamento matematico, nao apenas logico.",
+        "icon": "shield"
+      },
+      {
+        "title": "Medico como Convidado",
+        "description": "Profissionais recebem permissoes temporarias. O paciente revoga quando quiser.",
+        "icon": "user-check"
+      },
+      {
+        "title": "Zero Vazamentos em Massa",
+        "description": "Nao existe banco de dados central para hackear. Cada Actor e uma fortaleza.",
+        "icon": "lock"
+      }
+    ],
+    "grid": {
+      "title": "Arquitetura de Capsulas",
+      "description": "Cada capsula representa um PatientActor isolado. Aproxime o mouse para ver o estado."
+    }
+  },
+
+  "ecosystem": {
+    "badge": "Ecossistema",
+    "headline": "Um Ecossistema. Nao um Aplicativo.",
+    "description": "O HealthOS orquestra ServiceActors e EntityActors em um sistema cognitivo completo. Cada modulo conversa com os outros.",
+    "products": [
+      {
+        "name": "MedScribe",
+        "description": "Documentacao clinica por voz. SOAP, prescricoes, atestados.",
+        "status": "live",
+        "statusLabel": "Disponivel",
+        "icon": "waveform"
+      },
+      {
+        "name": "Regulacao",
+        "description": "Automacao de fluxos regulatorios e encaminhamentos.",
+        "status": "beta",
+        "statusLabel": "Beta",
+        "icon": "document"
+      },
+      {
+        "name": "Agenda",
+        "description": "Agendamento inteligente com IA conversacional.",
+        "status": "development",
+        "statusLabel": "Desenvolvimento",
+        "icon": "calendar"
+      },
+      {
+        "name": "Telemedicina",
+        "description": "Consultas remotas com documentacao automatica.",
+        "status": "planned",
+        "statusLabel": "Planejado",
+        "icon": "video"
+      }
+    ],
+    "tam": {
+      "value": "$127B",
+      "label": "Healthcare IT no Brasil ate 2030"
+    }
+  },
+
+  "cta": {
+    "headline": "Pronto para a medicina sem burocracia?",
+    "description": "Junte-se aos profissionais que estao redefinindo o cuidado em saude.",
+    "button": "Solicitar Acesso Antecipado",
+    "note": "Sem compromisso. Sem cartao de credito."
+  },
+
+  "footer": {
+    "tagline": "O primeiro Sistema Operacional Cognitivo para Saude",
+    "copyright": "2024 Voither",
+    "links": [
+      { "label": "Privacidade", "href": "/privacidade" },
+      { "label": "Termos", "href": "/termos" },
+      { "label": "Contato", "href": "/contato" }
+    ],
+    "values": [
+      "Tecnologia Invisivel",
+      "Soberania do Paciente",
+      "Feito no Brasil"
+    ],
+    "social": [
+      { "platform": "linkedin", "href": "https://linkedin.com/company/voither" },
+      { "platform": "twitter", "href": "https://twitter.com/voither" },
+      { "platform": "github", "href": "https://github.com/voither" }
+    ]
+  }
+}
