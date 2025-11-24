@@ -1,0 +1,421 @@
+# Template de Stage Manifest
+# Copie este arquivo e preencha conforme seu caso de uso
+
+# ============================================================================
+# IDENTIFICACAO
+# ============================================================================
+
+id: meu-stage                    # ID unico do stage (kebab-case)
+name: Meu Stage                  # Nome amigavel
+description: |                   # Descricao detalhada
+  Descricao completa do que este stage faz,
+  qual problema ele resolve e para quem.
+vendor: minha-empresa            # Nome do fornecedor/desenvolvedor
+version: 1.0.0                   # Versao semantica
+
+# ============================================================================
+# ACTORS
+# ============================================================================
+
+# Tipos de actors que este stage utiliza
+actors:
+  - entity                       # Profissionais
+  - service                      # Unidades de saude
+  - patient                      # Pacientes (se aplicavel)
+
+# ============================================================================
+# TOOLS
+# ============================================================================
+
+# MCPs especificos deste stage
+tools:
+  # Tool de capability (faz algo)
+  - id: meu-tool-capability
+    name: Meu Tool de Capability
+    description: Executa uma tarefa especifica
+    category: capability
+    version: 1.0.0
+    mcpTools:
+      - name: executar_tarefa
+        description: Executa a tarefa principal
+        inputSchema:
+          type: object
+          properties:
+            entrada:
+              type: string
+              description: Dados de entrada
+            opcoes:
+              type: object
+              properties:
+                formato:
+                  type: string
+                  enum: [json, text, html]
+          required:
+            - entrada
+
+  # Tool de integracao (conecta sistemas)
+  - id: meu-tool-integracao
+    name: Integracao com Sistema X
+    description: Conecta com sistema externo X
+    category: integration
+    version: 1.0.0
+    mcpTools:
+      - name: buscar
+        description: Busca dados no sistema X
+        inputSchema:
+          type: object
+          properties:
+            query:
+              type: string
+            filtros:
+              type: object
+          required:
+            - query
+
+      - name: enviar
+        description: Envia dados para sistema X
+        inputSchema:
+          type: object
+          properties:
+            dados:
+              type: object
+          required:
+            - dados
+
+  # Tool de conhecimento (consulta bases)
+  - id: meu-tool-conhecimento
+    name: Base de Conhecimento Y
+    description: Consulta base de conhecimento Y
+    category: knowledge
+    version: 1.0.0
+    mcpTools:
+      - name: consultar
+        description: Consulta a base de conhecimento
+        inputSchema:
+          type: object
+          properties:
+            termo:
+              type: string
+            limite:
+              type: number
+              default: 10
+          required:
+            - termo
+    mcpResources:
+      - uri: "knowledge://base-y/categorias"
+        name: Categorias
+        description: Lista de categorias disponiveis
+        mimeType: application/json
+
+  # Tool de automacao (executa acoes)
+  - id: meu-tool-automacao
+    name: Automacao de Documentos
+    description: Gera e processa documentos
+    category: automation
+    version: 1.0.0
+    mcpTools:
+      - name: gerar_documento
+        description: Gera um documento estruturado
+        inputSchema:
+          type: object
+          properties:
+            tipo:
+              type: string
+              enum: [relatorio, formulario, notificacao]
+            dados:
+              type: object
+            template:
+              type: string
+          required:
+            - tipo
+            - dados
+
+# ============================================================================
+# PERSONAS
+# ============================================================================
+
+personas:
+  # Persona principal (auto)
+  - id: assistente-principal
+    name: Assistente Principal
+    description: Persona padrao que atende requisicoes gerais
+    icon: assistant
+    color: "#0066cc"
+    trigger:
+      type: auto
+      priority: 50
+    agent:
+      model: claude-sonnet-4-20250514
+      temperature: 0.7
+      maxTokens: 4096
+      thinkingEnabled: false
+      streamingEnabled: true
+      systemPrompt: |
+        Voce e o assistente principal do [Meu Stage].
+
+        ## SEU PAPEL
+        [Descreva o papel da persona]
+
+        ## SUAS CAPACIDADES
+        1. [Capacidade 1]
+        2. [Capacidade 2]
+        3. [Capacidade 3]
+
+        ## RESTRICOES
+        - [Restricao 1]
+        - [Restricao 2]
+
+        ## FORMATO DE RESPOSTA
+        [Como a persona deve formatar respostas]
+
+        ## EXEMPLOS
+        [Exemplos de interacoes]
+    tools:
+      - meu-tool-capability
+      - meu-tool-conhecimento
+    guardrails:
+      - id: g1
+        type: require_validation
+        enabled: true
+        config:
+          actions:
+            - gerar_documento
+      - id: g2
+        type: timeout
+        enabled: true
+        config:
+          seconds: 300
+
+  # Persona especializada (event)
+  - id: especialista
+    name: Especialista
+    description: Persona ativada para tarefas especializadas
+    icon: specialist
+    color: "#cc6600"
+    trigger:
+      type: event
+      event: tarefa_especializada
+      priority: 80
+    agent:
+      model: claude-sonnet-4-20250514
+      temperature: 0.3
+      thinkingEnabled: true
+      systemPrompt: |
+        Voce e um especialista em [dominio].
+
+        [System prompt especializado...]
+    tools:
+      - meu-tool-capability
+      - meu-tool-integracao
+    guardrails:
+      - id: g3
+        type: scope_limit
+        enabled: true
+        config:
+          dataTypes:
+            - consultations
+
+  # Persona de analise (manual)
+  - id: analista
+    name: Analista
+    description: Persona para analises profundas sob demanda
+    icon: analytics
+    color: "#6600cc"
+    trigger:
+      type: manual
+    agent:
+      model: claude-sonnet-4-20250514
+      temperature: 0.5
+      thinkingEnabled: true
+      systemPrompt: |
+        Voce e um analista especializado.
+
+        [System prompt de analise...]
+    tools:
+      - meu-tool-capability
+      - meu-tool-conhecimento
+    guardrails:
+      - id: g4
+        type: custom
+        enabled: true
+        config:
+          handler: disclaimer
+          message: "Esta analise e auxiliar e nao substitui avaliacao profissional."
+
+# ============================================================================
+# SCRIPTS
+# ============================================================================
+
+scripts:
+  # Script principal
+  - id: fluxo-principal
+    name: Fluxo Principal
+    description: Fluxo padrao de operacao do stage
+    version: 1.0.0
+    enabled: true
+    steps:
+      # Inicio da sessao
+      - id: inicio
+        name: Inicio
+        trigger: session_start
+        activate: assistente-principal
+        actions:
+          - type: generate
+            target: contexto_sessao
+            params:
+              incluir_historico: true
+        onError: continue
+
+      # Processamento de input
+      - id: processar
+        name: Processar Input
+        trigger: user_input
+        activate: assistente-principal
+        actions:
+          - type: generate
+            target: resposta
+        conditions:
+          - if: "requer_especialista === true"
+            then:
+              - type: emit
+                target: tarefa_especializada
+
+      # Tarefa especializada
+      - id: especializar
+        name: Tarefa Especializada
+        trigger: tarefa_especializada
+        activate: especialista
+        actions:
+          - type: generate
+            target: analise_especializada
+          - type: save_to
+            target: session.analises
+
+      # Finalizacao
+      - id: finalizar
+        name: Finalizar Sessao
+        trigger: session_end
+        actions:
+          - type: generate
+            target: resumo_sessao
+          - type: save_to
+            target: historico
+          - type: notify
+            target: entity
+            params:
+              tipo: sessao_encerrada
+        conditions:
+          - if: "pendencias.length > 0"
+            then:
+              - type: queue
+                target: tarefas_pendentes
+
+  # Script de agendamento
+  - id: script-agendado
+    name: Tarefa Agendada
+    description: Executa tarefas em horarios especificos
+    version: 1.0.0
+    enabled: true
+    steps:
+      - id: executar
+        name: Executar Tarefa Agendada
+        trigger: "schedule:0 9 * * 1-5"  # 9h, seg-sex
+        actions:
+          - type: generate
+            target: relatorio_diario
+          - type: notify
+            target: admin
+
+# ============================================================================
+# AUTOMACAO
+# ============================================================================
+
+automation:
+  # Executa automaticamente
+  - id: auto-salvar
+    action: salvar_rascunho
+    level: auto_execute
+    conditions: []
+
+  - id: auto-timestamp
+    action: registrar_timestamp
+    level: auto_execute
+
+  # Executa e notifica
+  - id: notify-relatorio
+    action: gerar_relatorio
+    level: auto_with_notification
+    notifyActors:
+      - entity
+    timeout: 60
+
+  # Requer validacao
+  - id: validate-documento
+    action: enviar_documento
+    level: require_validation
+    conditions:
+      - "tipo === 'oficial'"
+
+  # Requer assinatura
+  - id: sign-documento
+    action: assinar_documento
+    level: require_signature
+    conditions:
+      - "requer_assinatura === true"
+
+# ============================================================================
+# UI
+# ============================================================================
+
+ui:
+  entrypoint: /stages/meu-stage/index.html
+  assets: /stages/meu-stage/assets
+  theme:
+    primaryColor: "#0066cc"
+    secondaryColor: "#333333"
+    accentColor: "#00cc66"
+    backgroundColor: "#ffffff"
+    fontFamily: "Inter, sans-serif"
+
+# ============================================================================
+# REQUIRED SCOPES
+# ============================================================================
+
+requiredScopes:
+  # Escopo padrao para operacao
+  - dataTypes:
+      - consultations
+    actions:
+      - read
+      - write
+    durationSeconds: 3600
+    reason: Operacao padrao do stage
+
+  # Escopo para acesso a historico
+  - dataTypes:
+      - medical_history
+    actions:
+      - read
+    durationSeconds: 1800
+    reason: Consulta de historico medico
+
+# ============================================================================
+# DEPENDENCIES (opcional)
+# ============================================================================
+
+dependencies:
+  - stageId: shared-tools
+    version: ">=1.0.0"
+    optional: true
+
+# ============================================================================
+# METADATA (opcional)
+# ============================================================================
+
+metadata:
+  tags:
+    - saude
+    - clinico
+  category: clinico
+  minCastVersion: "1.0.0"
+  documentation: https://docs.healthos.io/stages/meu-stage
