@@ -17,7 +17,8 @@ export type { CastRequest, CastResponse, OrchestratorDecision } from './cast';
 export { PatientActor, BaseActor } from './actors/patient';
 export type { ActorState } from './actors/patient';
 export { EntityActor, ServiceActor } from './actors/entity-service';
-export { BaseToolActor } from './actors/tool';
+export { BasePropActor, BaseToolActor, PropActors } from './actors/prop';
+export type { PropConfig } from './actors/prop';
 
 // Re-export types
 export * from '@healthos/shared';

@@ -35,7 +35,7 @@ import { Persona, AgentContext } from './persona/persona';
 import { Script, ScriptResult } from './act/script';
 
 // Types para Actors (importados via interface, implementação em @healthos/cast)
-interface BaseToolActor {
+interface BasePropActor {
   call(method: string, params: unknown): Promise<unknown>;
 }
 
@@ -63,7 +63,7 @@ export interface StageState {
   version: string;
   
   /** Tools registrados */
-  tools: Map<ToolId, BaseToolActor>;
+  tools: Map<ToolId, BasePropActor>;
   
   /** Personas disponíveis */
   personas: Map<PersonaId, Persona>;
@@ -152,10 +152,10 @@ export class Stage {
   /**
    * Cria instância de Tool (MCP)
    */
-  private async createTool(toolManifest: any): Promise<BaseToolActor> {
+  private async createTool(toolManifest: any): Promise<BasePropActor> {
     // Em produção, carregaria o Tool do binding apropriado
     // Por ora, retorna placeholder
-    return {} as BaseToolActor;
+    return {} as BasePropActor;
   }
 
   // ---------------------------------------------------------------------------
@@ -484,7 +484,7 @@ export class Stage {
     return this.state.name;
   }
 
-  getTools(): Map<ToolId, BaseToolActor> {
+  getTools(): Map<ToolId, BasePropActor> {
     return this.state.tools;
   }
 

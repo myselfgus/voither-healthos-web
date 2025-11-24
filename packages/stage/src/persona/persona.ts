@@ -30,7 +30,7 @@ import type {
 } from '@healthos/shared';
 
 // Interface para Tools (implementação em @healthos/cast)
-interface BaseToolActor {
+interface BasePropActor {
   call(method: string, params: unknown): Promise<unknown>;
 }
 
@@ -94,8 +94,8 @@ export interface ToolResult {
  */
 export class Agent {
   private config: AgentConfig;
-  private tools: Map<ToolId, BaseToolActor>;
-  
+  private tools: Map<ToolId, BasePropActor>;
+
   constructor(config: AgentConfig) {
     this.config = config;
     this.tools = new Map();
@@ -104,7 +104,7 @@ export class Agent {
   /**
    * Registra um Tool disponível para o Agent
    */
-  registerTool(toolId: ToolId, tool: BaseToolActor): void {
+  registerTool(toolId: ToolId, tool: BasePropActor): void {
     this.tools.set(toolId, tool);
   }
 
@@ -483,7 +483,7 @@ export class Persona {
   private guardrails: Guardrail[];
   private context: Record<string, unknown>;
   
-  constructor(manifest: PersonaManifest, tools: Map<ToolId, BaseToolActor>) {
+  constructor(manifest: PersonaManifest, tools: Map<ToolId, BasePropActor>) {
     this.id = manifest.id;
     this.name = manifest.name;
     this.description = manifest.description;

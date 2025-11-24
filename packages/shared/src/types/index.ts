@@ -1,19 +1,19 @@
 /**
  * HealthOS Core Types
- * 
+ *
  * Este arquivo define os tipos fundamentais da arquitetura HealthOS.
  * A hierarquia é:
- * 
+ *
  * CAST (HealthOS) - O sistema operacional / Cast Manager
  *   └── ACTORS - Entidades universais compartilhadas
  *       ├── PatientActor - Soberano dos seus dados
  *       ├── EntityActor - Profissionais e admins
  *       ├── ServiceActor - Unidades de saúde
- *       └── ToolActor - Capacidades (MCPs)
+ *       └── PropActor - Props/Capacidades universais (MCPs compartilhados)
  *   └── STAGES - Ambientes/Apps específicos
- *       ├── Tools - MCPs específicos do Stage
+ *       ├── Tools - MCPs específicos do Stage (Stage Tools)
  *       ├── Personas - Agent + Tools + Guardrails + Context
- *       └── Scripts - Fluxos declarativos
+ *       └── Act - Workflows declarativos + orquestração
  */
 
 // =============================================================================
@@ -39,7 +39,7 @@ export const createSessionId = (id: string): SessionId => id as SessionId;
 // TIPOS DE ACTORS
 // =============================================================================
 
-export type ActorType = 'patient' | 'entity' | 'service' | 'tool';
+export type ActorType = 'patient' | 'entity' | 'service' | 'prop';
 
 export type EntityRole = 
   | 'physician'
@@ -59,11 +59,14 @@ export type ServiceType =
   | 'pharmacy'
   | 'regulation_center';
 
-export type ToolCategory = 
+export type PropCategory =
   | 'capability'      // Faz coisas específicas (ASL, GEM)
   | 'integration'     // Conecta sistemas externos (SISREG, labs)
   | 'knowledge'       // Consulta bases (CID, protocolos)
   | 'automation';     // Executa ações (docs, forms, notify)
+
+// Alias para compatibilidade
+export type ToolCategory = PropCategory;
 
 // =============================================================================
 // SEGURANÇA E ACESSO
